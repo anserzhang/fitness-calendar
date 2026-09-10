@@ -1,0 +1,2239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>训练日历 · Fitness Calendar</title>
+<style>
+:root {
+  --bg: #0A0E1A;
+  --card: rgba(255, 255, 255, 0.05);
+  --card-strong: rgba(255, 255, 255, 0.08);
+  --primary: #00D4FF;
+  --primary-dim: rgba(0, 212, 255, 0.18);
+  --training: #FF6B35;
+  --training-dim: rgba(255, 107, 53, 0.25);
+  --cardio: #4ADE80;
+  --cardio-dim: rgba(74, 222, 128, 0.18);
+  --body: #FBBF24;
+  --body-dim: rgba(251, 191, 36, 0.18);
+  --text: #E8ECF1;
+  --text-dim: #8B95A7;
+  --text-faint: #5C6678;
+  --border: rgba(255, 255, 255, 0.08);
+  --danger: rgba(255, 107, 53, 0.2);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  background-image:
+    radial-gradient(circle at 15% 0%, rgba(0, 212, 255, 0.08), transparent 50%),
+    radial-gradient(circle at 85% 100%, rgba(255, 107, 53, 0.05), transparent 50%);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 16px;
+  gap: 16px;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: var(--card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.logo { font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.logo-icon { font-size: 22px; }
+
+.month-nav { display: flex; align-items: center; gap: 8px; }
+.month-nav button {
+  background: var(--card-strong);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: inherit;
+  font-weight: 500;
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.month-nav button:hover {
+  background: var(--primary-dim);
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 212, 255, 0.25);
+}
+.month-nav button:active { transform: translateY(0); }
+.month-nav button.icon-btn { padding: 8px 14px; font-size: 18px; line-height: 1; }
+.month-nav button.primary-btn {
+  background: var(--primary);
+  color: var(--bg);
+  border-color: var(--primary);
+  font-weight: 600;
+}
+.month-nav button.primary-btn:hover {
+  background: var(--primary);
+  filter: brightness(1.1);
+}
+#month-label {
+  font-size: 17px;
+  font-weight: 600;
+  min-width: 130px;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+main {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+}
+
+.calendar-container {
+  background: var(--card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.weekday-row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.weekday-row div {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-dim);
+  padding: 6px 0;
+  font-weight: 500;
+  letter-spacing: 1px;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  flex: 1;
+  position: relative;
+}
+
+.day-cell {
+  aspect-ratio: 1 / 1.05;
+  min-height: 88px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  background: var(--card);
+  border: 1px solid transparent;
+  position: relative;
+  transition: border-color 150ms ease, background 150ms ease, transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  user-select: none;
+  padding: 6px 4px 4px;
+}
+
+/* 训练过的日期默认是 copy 光标，提示可拖拽 */
+.day-cell.has-training { cursor: copy; }
+
+/* 框选进行时所有日期变为 crosshair */
+body.box-dragging .calendar-grid,
+body.box-dragging .day-cell { cursor: crosshair !important; }
+
+.day-cell:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+  z-index: 1;
+}
+
+.day-cell.other-month { opacity: 0.32; }
+.day-cell.other-month:hover { opacity: 0.55; }
+
+.day-cell.today {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary), 0 0 24px var(--primary-dim);
+}
+.day-cell.today .day-num { color: var(--primary); font-weight: 700; }
+
+.day-cell.selected {
+  border-color: var(--primary);
+  background: var(--primary-dim) !important;
+}
+
+/* 框选中的源单元：青色 */
+.day-cell.box-selected {
+  border-color: var(--primary);
+  background: rgba(0, 212, 255, 0.18) !important;
+  box-shadow: 0 0 0 1px var(--primary), 0 0 16px rgba(0, 212, 255, 0.3);
+  transform: none;
+  z-index: 2;
+}
+
+/* 落点单元：橙色，优先级高于 box-selected */
+.day-cell.drop-target {
+  border-color: var(--training);
+  background: rgba(255, 107, 53, 0.22) !important;
+  box-shadow: 0 0 0 2px var(--training), 0 0 20px rgba(255, 107, 53, 0.4);
+  transform: none;
+  z-index: 3;
+}
+
+.day-num {
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 600;
+  z-index: 2;
+  margin-bottom: 4px;
+}
+
+.day-lines {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  justify-content: flex-start;
+  align-items: stretch;
+  min-height: 0;
+}
+
+.day-line {
+  font-size: 10px;
+  line-height: 1.25;
+  width: 100%;
+  padding: 1px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  font-weight: 500;
+  letter-spacing: -0.2px;
+}
+.day-line.weight { color: var(--training); background: rgba(255, 107, 53, 0.10); }
+.day-line.distance { color: var(--cardio); background: rgba(74, 222, 128, 0.10); }
+.day-line.reps { color: var(--body); background: rgba(251, 191, 36, 0.10); }
+
+.day-more {
+  font-size: 9px;
+  color: var(--text-faint);
+  font-weight: 600;
+  text-align: center;
+  margin-top: 1px;
+}
+
+/* 框选矩形 */
+.box-rect {
+  position: fixed;
+  display: none;
+  border: 1.5px dashed var(--primary);
+  background: rgba(0, 212, 255, 0.06);
+  border-radius: 6px;
+  pointer-events: none;
+  z-index: 60;
+  box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.25), inset 0 0 0 1px rgba(0, 212, 255, 0.08);
+}
+.box-rect.show { display: block; }
+
+.calendar-menu {
+  display: flex;
+  gap: 8px;
+  padding-top: 4px;
+  flex-wrap: wrap;
+}
+.calendar-menu button {
+  flex: 1;
+  min-width: 90px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.calendar-menu button:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-dim);
+}
+
+.calendar-hint {
+  font-size: 11px;
+  color: var(--text-faint);
+  text-align: center;
+  padding: 2px 4px 0;
+  line-height: 1.5;
+}
+.calendar-hint .hint-icon { margin-right: 4px; }
+.calendar-hint strong { color: var(--text-dim); font-weight: 600; }
+
+/* Drawer */
+.drawer {
+  background: var(--card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.drawer-header h2 {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+.drawer-close {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 24px;
+  line-height: 1;
+  padding: 4px 10px;
+  border-radius: 8px;
+  transition: all 200ms;
+  font-family: inherit;
+}
+.drawer-close:hover {
+  background: var(--card-strong);
+  color: var(--text);
+}
+
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 24px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.drawer-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--text-dim);
+  gap: 12px;
+  padding: 32px 16px;
+}
+.drawer-empty .icon { font-size: 44px; opacity: 0.7; }
+.drawer-empty .hint { font-size: 12px; opacity: 0.7; }
+
+.exercises-list { display: flex; flex-direction: column; gap: 14px; }
+
+.exercise-block {
+  background: var(--card-strong);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  transition: all 200ms;
+}
+
+.exercise-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  gap: 8px;
+}
+.exercise-name { font-weight: 600; font-size: 15px; flex: 1; }
+.exercise-tag {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--card);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  font-weight: 500;
+}
+.exercise-tag.weight { color: var(--training); border-color: rgba(255, 107, 53, 0.3); }
+.exercise-tag.distance { color: var(--cardio); border-color: rgba(74, 222, 128, 0.3); }
+.exercise-tag.reps { color: var(--body); border-color: rgba(251, 191, 36, 0.3); }
+
+.exercise-delete {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  transition: all 200ms;
+  font-family: inherit;
+}
+.exercise-delete:hover {
+  border-color: var(--training);
+  color: var(--training);
+  background: var(--danger);
+}
+
+.sets-table { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+
+.set-row {
+  display: grid;
+  gap: 6px;
+  align-items: center;
+}
+.set-row.unit-weight { grid-template-columns: 22px 1fr 1fr 28px; }
+.set-row.unit-distance,
+.set-row.unit-reps { grid-template-columns: 22px 1fr 28px; }
+
+.set-row .set-num {
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.input-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.input-cell input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 26px 8px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+  transition: all 200ms;
+  -moz-appearance: textfield;
+}
+.input-cell input::-webkit-outer-spin-button,
+.input-cell input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.input-cell input:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: rgba(0, 0, 0, 0.5);
+}
+.input-cell .unit {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  color: var(--text-dim);
+  pointer-events: none;
+  font-weight: 500;
+}
+
+.set-delete {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 200ms;
+  font-family: inherit;
+}
+.set-delete:hover {
+  color: var(--training);
+  background: var(--danger);
+}
+
+.add-set-btn {
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--text-dim);
+  padding: 9px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: inherit;
+  width: 100%;
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.add-set-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-dim);
+  transform: translateY(-1px);
+}
+
+.drawer-footer {
+  padding: 16px 24px 20px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.exercise-selector {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 11px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  width: 100%;
+  cursor: pointer;
+  transition: all 200ms;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill='%238B95A7' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px;
+  padding-right: 32px;
+}
+.exercise-selector:focus { outline: none; border-color: var(--primary); }
+.exercise-selector option { background: var(--bg); color: var(--text); }
+
+.clear-day-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 107, 53, 0.3);
+  color: var(--training);
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  transition: all 200ms;
+}
+.clear-day-btn:hover { background: var(--danger); border-color: var(--training); }
+
+footer {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.stat {
+  background: var(--card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  transition: all 200ms;
+}
+.stat:hover {
+  border-color: var(--primary-dim);
+  transform: translateY(-2px);
+}
+.stat-label {
+  display: block;
+  color: var(--text-dim);
+  font-size: 11px;
+  margin-bottom: 6px;
+  letter-spacing: 0.5px;
+}
+.stat-value {
+  display: block;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  min-height: 27px;
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 110px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: rgba(10, 14, 26, 0.95);
+  border: 1px solid var(--primary);
+  color: var(--text);
+  padding: 10px 18px;
+  border-radius: 24px;
+  font-size: 13px;
+  z-index: 300;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  max-width: 90vw;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.toast-icon {
+  color: var(--primary);
+  font-weight: bold;
+  font-size: 14px;
+}
+
+/* Day tooltip */
+.day-tooltip {
+  position: fixed;
+  background: rgba(10, 14, 26, 0.96);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 12px;
+  z-index: 150;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 160ms ease-out, transform 160ms ease-out;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  min-width: 220px;
+  max-width: 320px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  visibility: hidden;
+}
+.day-tooltip.show {
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
+}
+
+.day-tooltip-header {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.day-tooltip-header .badge {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(255, 107, 53, 0.18);
+  color: var(--training);
+  font-weight: 600;
+}
+
+.day-tooltip-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.day-tooltip-exercise {
+  border-left: 2px solid var(--border);
+  padding-left: 10px;
+}
+.day-tooltip-exercise.weight { border-left-color: var(--training); }
+.day-tooltip-exercise.distance { border-left-color: var(--cardio); }
+.day-tooltip-exercise.reps { border-left-color: var(--body); }
+
+.day-tooltip-exercise-name {
+  font-weight: 600;
+  font-size: 12px;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
+}
+
+.day-tooltip-exercise-name .unit-tag {
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+.day-tooltip-exercise-name .unit-tag.weight { color: var(--training); background: rgba(255, 107, 53, 0.15); }
+.day-tooltip-exercise-name .unit-tag.distance { color: var(--cardio); background: rgba(74, 222, 128, 0.15); }
+.day-tooltip-exercise-name .unit-tag.reps { color: var(--body); background: rgba(251, 191, 36, 0.15); }
+
+.day-tooltip-set {
+  font-size: 11px;
+  color: var(--text-dim);
+  padding: 1px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.day-tooltip-set .set-idx {
+  display: inline-block;
+  min-width: 18px;
+  text-align: center;
+  font-weight: 600;
+  color: var(--text-faint);
+  font-size: 10px;
+}
+.day-tooltip-set .set-val { color: var(--text); font-weight: 500; }
+
+.day-tooltip-footer {
+  font-size: 10px;
+  color: var(--text-faint);
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+
+/* Modal */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms;
+}
+.modal-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  width: 92%;
+  max-width: 520px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-image:
+    radial-gradient(circle at 15% 0%, rgba(0, 212, 255, 0.1), transparent 50%),
+    radial-gradient(circle at 85% 100%, rgba(255, 107, 53, 0.06), transparent 50%);
+  transform: scale(0.96);
+  transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.modal-backdrop.open .modal { transform: scale(1); }
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+.modal-title { font-size: 16px; font-weight: 600; }
+.modal-close {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-family: inherit;
+  line-height: 1;
+}
+.modal-close:hover { background: var(--card-strong); color: var(--text); }
+
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  margin: 0 -8px;
+  padding: 0 8px;
+}
+
+.modal-tip {
+  font-size: 11px;
+  color: var(--text-dim);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.exercise-group { margin-bottom: 16px; }
+.exercise-group h3 {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.exercise-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 6px;
+  transition: all 200ms;
+  gap: 8px;
+}
+.exercise-row:hover { border-color: rgba(255, 255, 255, 0.15); }
+.exercise-row-info { flex: 1; min-width: 0; }
+.exercise-row-name { font-weight: 500; font-size: 14px; }
+.exercise-row-meta {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.exercise-row-meta .meta-unit { font-weight: 500; }
+.exercise-row-meta .meta-unit.weight { color: var(--training); }
+.exercise-row-meta .meta-unit.distance { color: var(--cardio); }
+.exercise-row-meta .meta-unit.reps { color: var(--body); }
+
+.exercise-row-delete {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  font-family: inherit;
+  transition: all 200ms;
+  flex-shrink: 0;
+}
+.exercise-row-delete:hover {
+  border-color: var(--training);
+  color: var(--training);
+  background: var(--danger);
+}
+
+.add-exercise-toggle {
+  width: 100%;
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--text-dim);
+  padding: 11px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: inherit;
+  transition: all 200ms;
+  margin-top: 4px;
+}
+.add-exercise-toggle:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-dim);
+}
+
+.add-exercise-form {
+  background: var(--card-strong);
+  border: 1px solid var(--primary-dim);
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 10px;
+}
+.add-exercise-form h4 {
+  font-size: 13px;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.form-field { margin-bottom: 12px; }
+.form-field label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+  letter-spacing: 0.3px;
+}
+.form-field input,
+.form-field select {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+  transition: all 200ms;
+}
+.form-field input:focus,
+.form-field select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+.form-field select { cursor: pointer; }
+.form-field select option { background: var(--bg); color: var(--text); }
+
+.form-actions { display: flex; gap: 8px; margin-top: 12px; }
+.form-actions button {
+  flex: 1;
+  padding: 9px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 500;
+  transition: all 200ms;
+}
+.btn-primary {
+  background: var(--primary);
+  color: var(--bg);
+  border: 1px solid var(--primary);
+}
+.btn-primary:hover { filter: brightness(1.1); }
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+.btn-ghost:hover {
+  border-color: var(--text);
+  color: var(--text);
+}
+
+/* Scrollbar */
+.drawer-body::-webkit-scrollbar,
+.modal-body::-webkit-scrollbar { width: 4px; }
+.drawer-body::-webkit-scrollbar-track,
+.modal-body::-webkit-scrollbar-track { background: transparent; }
+.drawer-body::-webkit-scrollbar-thumb,
+.modal-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+.drawer-body::-webkit-scrollbar-thumb:hover,
+.modal-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .app { padding: 8px; gap: 8px; }
+  header { padding: 12px 16px; flex-direction: column; gap: 8px; }
+  #month-label { font-size: 16px; min-width: auto; }
+  main { grid-template-columns: 1fr; }
+  .drawer {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: 100%;
+    max-width: 100%;
+    border-radius: 0;
+    z-index: 100;
+    transform: translateX(100%);
+    transition: transform 280ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .drawer.open { transform: translateX(0); }
+  .calendar-container { padding: 12px; }
+  footer { grid-template-columns: repeat(2, 1fr); }
+
+  .day-cell {
+    aspect-ratio: 1;
+    min-height: 0;
+    padding: 3px 2px;
+  }
+  .day-num { font-size: 12px; margin-bottom: 2px; }
+  .day-line { font-size: 8px; padding: 0 2px; }
+  .day-more { font-size: 7px; }
+  .stat-value { font-size: 18px; min-height: 22px; }
+  .calendar-hint { font-size: 10px; }
+  .toast { bottom: 90px; font-size: 12px; padding: 8px 14px; }
+}
+
+@media (max-width: 380px) {
+  .month-nav button { padding: 6px 12px; font-size: 13px; }
+  .month-nav button.icon-btn { padding: 6px 10px; }
+  #month-label { font-size: 14px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo">
+      <span class="logo-icon">💪</span>
+      <span>训练日历</span>
+    </div>
+    <div class="month-nav">
+      <button class="icon-btn" id="prev-month" aria-label="上个月">‹</button>
+      <div id="month-label">2026 年 9 月</div>
+      <button class="icon-btn" id="next-month" aria-label="下个月">›</button>
+      <button class="primary-btn" id="today-btn">今天</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="calendar-container">
+      <div class="weekday-row">
+        <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
+      </div>
+      <div class="calendar-grid" id="calendar-grid"></div>
+      <div class="calendar-menu">
+        <button id="manage-exercises-btn">🏋️ 动作库</button>
+        <button id="export-btn">📤 导出</button>
+        <button id="import-btn">📥 导入</button>
+        <input type="file" id="import-file" accept=".json,application/json" hidden>
+      </div>
+      <div class="calendar-hint">
+        <span class="hint-icon">💡</span>
+        在训练过的日期上<strong>按住鼠标拖拽</strong>框选，可复制到其他日期
+      </div>
+    </div>
+
+    <aside class="drawer" id="drawer"></aside>
+  </main>
+
+  <footer>
+    <div class="stat">
+      <span class="stat-label">本月训练天数</span>
+      <span class="stat-value" id="stat-days">0</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">当前 Streak</span>
+      <span class="stat-value" id="stat-streak">0</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">最长 Streak</span>
+      <span class="stat-value" id="stat-max-streak">0</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">本月训练量</span>
+      <span class="stat-value" id="stat-volume">0</span>
+    </div>
+  </footer>
+</div>
+
+<div class="box-rect" id="box-rect"></div>
+<div class="day-tooltip" id="day-tooltip"></div>
+<div class="toast" id="toast"></div>
+
+<div class="modal-backdrop" id="manage-modal-backdrop">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">🏋️ 动作库管理</div>
+      <button class="modal-close" id="manage-modal-close" aria-label="关闭">×</button>
+    </div>
+    <div class="modal-body" id="manage-modal-body"></div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  const STORAGE_KEY = 'fitness-calendar-data';
+
+  const DEFAULT_EXERCISES = [
+    { name: '杠铃深蹲', category: '腿', unit: 'weight' },
+    { name: '保加利亚蹲', category: '腿', unit: 'weight' },
+    { name: '罗马尼亚硬拉', category: '腿', unit: 'weight' },
+    { name: '臀桥', category: '腿', unit: 'weight' },
+    { name: '单腿臀桥', category: '腿', unit: 'weight' },
+    { name: '臀冲', category: '腿', unit: 'weight' },
+    { name: '髋外展', category: '腿', unit: 'weight' },
+    { name: '单腿RDL', category: '腿', unit: 'weight' },
+    { name: '行走弓步', category: '腿', unit: 'weight' },
+    { name: '箱式深蹲', category: '腿', unit: 'weight' },
+    { name: '箭步蹲', category: '腿', unit: 'weight' },
+    { name: '腿弯举', category: '腿', unit: 'weight' },
+    { name: '腿屈伸', category: '腿', unit: 'weight' },
+    { name: '提踵', category: '腿', unit: 'weight' },
+    { name: '早安式', category: '腿', unit: 'weight' },
+    { name: '哥萨克深蹲', category: '腿', unit: 'weight' },
+    { name: '俯卧撑', category: '推', unit: 'reps' },
+    { name: '慢跑', category: '有氧', unit: 'distance' }
+  ];
+
+  const REST_MESSAGES = [
+    '休息日，恢复比训练更重要',
+    '身体在休息时变强',
+    '不训练也是一种训练',
+    '让肌肉修复，明天再战',
+    '休息日 ≠ 偷懒日',
+    '休息是为了走更远的路'
+  ];
+
+  const UNIT_LABELS = {
+    weight: { tag: '重量', input: '重量', suffix: 'kg', cssClass: 'weight' },
+    distance: { tag: '距离', input: '距离', suffix: 'km', cssClass: 'distance' },
+    reps: { tag: '次数', input: '次数', suffix: '个', cssClass: 'reps' }
+  };
+
+  const CATEGORY_ORDER = ['腿', '推', '拉', '核心', '有氧', '其他'];
+
+  // ---------- state ----------
+  let data = loadData();
+  let viewYear, viewMonth;
+  let selectedDate = null;
+  let maxIntensity = 0;
+  let hoverTimeout = null;
+
+  // box selection state
+  let boxStart = null;
+  let boxStartKey = null;
+  let isBoxSelecting = false;
+  let boxSelectedKeys = new Set();
+  let currentDropKey = null;
+
+  // ---------- helpers ----------
+  function dateKey(y, m, d) {
+    return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  }
+  function todayKey() {
+    const t = new Date();
+    return dateKey(t.getFullYear(), t.getMonth(), t.getDate());
+  }
+  function parseKey(key) {
+    const [y, m, d] = key.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+
+  function loadData() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return freshData();
+      const parsed = JSON.parse(raw);
+      if (!parsed.exercises || !parsed.days || !parsed.meta) return freshData();
+      if (!Array.isArray(parsed.exercises)) return freshData();
+      if (typeof parsed.days !== 'object') return freshData();
+      return parsed;
+    } catch (e) {
+      return freshData();
+    }
+  }
+  function freshData() {
+    return {
+      exercises: DEFAULT_EXERCISES.slice(),
+      days: {},
+      meta: { startDate: todayKey() }
+    };
+  }
+  function saveData() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {
+      console.error('保存失败', e);
+      alert('保存失败：' + e.message);
+    }
+  }
+
+  function migrateData() {
+    let changed = false;
+    for (const k in data.days) {
+      const arr = data.days[k];
+      if (!Array.isArray(arr)) continue;
+      for (const ex of arr) {
+        if (!ex.unit) {
+          const lib = data.exercises.find(e => e.name === ex.name);
+          ex.unit = (lib && lib.unit) || 'weight';
+          changed = true;
+        }
+        if (!Array.isArray(ex.sets)) ex.sets = [];
+      }
+    }
+    for (const ex of data.exercises) {
+      if (!ex.unit) {
+        ex.unit = 'weight';
+        changed = true;
+      }
+    }
+    if (changed) saveData();
+  }
+
+  function hasTraining(key) {
+    return data.days[key] && data.days[key].length > 0;
+  }
+
+  function getExerciseUnit(name, dayData) {
+    if (dayData) {
+      const ex = dayData.find(e => e.name === name);
+      if (ex && ex.unit) return ex.unit;
+    }
+    const lib = data.exercises.find(e => e.name === name);
+    return (lib && lib.unit) || 'weight';
+  }
+
+  function dayBreakdown(dayData) {
+    const result = { weight: 0, distance: 0, reps: 0 };
+    if (!dayData) return result;
+    for (const ex of dayData) {
+      const unit = ex.unit || getExerciseUnit(ex.name);
+      for (const set of ex.sets) {
+        if (unit === 'distance') result.distance += Number(set.distance) || 0;
+        else if (unit === 'reps') result.reps += Number(set.reps) || 0;
+        else result.weight += (Number(set.reps) || 0) * (Number(set.weight) || 0);
+      }
+    }
+    return result;
+  }
+
+  function dayIntensity(dayData) {
+    if (!dayData || dayData.length === 0) return 0;
+    const b = dayBreakdown(dayData);
+    return Math.max(b.weight, b.distance * 1000, b.reps * 100);
+  }
+
+  function computeMaxIntensity() {
+    let max = 0;
+    for (const k in data.days) {
+      const v = dayIntensity(data.days[k]);
+      if (v > max) max = v;
+    }
+    maxIntensity = max;
+  }
+
+  function formatExerciseSummary(ex, unit) {
+    const name = ex.name;
+    if (unit === 'distance') {
+      const total = ex.sets.reduce((s, x) => s + (Number(x.distance) || 0), 0);
+      if (total === 0) return name;
+      return `${name} ${formatNum(total)}km`;
+    }
+    if (unit === 'reps') {
+      const total = ex.sets.reduce((s, x) => s + (Number(x.reps) || 0), 0);
+      if (total === 0) return name;
+      return `${name} ${total}个`;
+    }
+    const setCount = ex.sets.length;
+    const maxWeight = Math.max(0, ...ex.sets.map(s => Number(s.weight) || 0));
+    const totalReps = ex.sets.reduce((s, x) => s + (Number(x.reps) || 0), 0);
+    if (maxWeight > 0) return `${name} ${setCount}×${formatNum(maxWeight)}`;
+    if (totalReps > 0) return `${name} ${totalReps}次`;
+    return name;
+  }
+
+  function formatNum(n) {
+    if (n >= 10000) return (n / 1000).toFixed(1) + 'k';
+    if (!Number.isInteger(n)) return n.toFixed(1);
+    return String(n);
+  }
+
+  function calcCurrentStreak() {
+    const d = new Date();
+    let cur = 0;
+    const todayK = dateKey(d.getFullYear(), d.getMonth(), d.getDate());
+    if (!hasTraining(todayK)) d.setDate(d.getDate() - 1);
+    while (true) {
+      const k = dateKey(d.getFullYear(), d.getMonth(), d.getDate());
+      if (hasTraining(k)) {
+        cur++;
+        d.setDate(d.getDate() - 1);
+      } else break;
+      if (cur > 3650) break;
+    }
+    return cur;
+  }
+  function calcMaxStreak() {
+    const keys = Object.keys(data.days)
+      .filter(k => data.days[k] && data.days[k].length > 0)
+      .sort();
+    if (keys.length === 0) return 0;
+    let max = 1, cur = 1;
+    for (let i = 1; i < keys.length; i++) {
+      const prev = new Date(keys[i - 1]);
+      const curr = new Date(keys[i]);
+      const diff = Math.round((curr - prev) / 86400000);
+      if (diff === 1) cur++;
+      else cur = 1;
+      if (cur > max) max = cur;
+    }
+    return max;
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+  }
+
+  function formatMonthlyVolume(b) {
+    const parts = [];
+    if (b.weight > 0) {
+      if (b.weight >= 100000) parts.push((b.weight / 1000).toFixed(1) + 't');
+      else if (b.weight >= 1000) parts.push((b.weight / 1000).toFixed(1) + 'k');
+      else parts.push(Math.round(b.weight) + 'kg');
+    }
+    if (b.distance > 0) parts.push(b.distance.toFixed(1) + 'km');
+    if (b.reps > 0) parts.push(b.reps + '个');
+    return parts.length > 0 ? parts.join('·') : '0';
+  }
+
+  function animateNumber(el, target) {
+    target = Number(target) || 0;
+    const current = parseInt(el.textContent, 10) || 0;
+    if (current === target) return;
+    const start = performance.now();
+    const duration = 500;
+    function step(now) {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      el.textContent = Math.round(current + (target - current) * eased);
+      if (t < 1) requestAnimationFrame(step);
+      else el.textContent = String(target);
+    }
+    requestAnimationFrame(step);
+  }
+
+  function isCompact() {
+    return window.innerWidth <= 768;
+  }
+
+  // ---------- render ----------
+  function renderAll() {
+    renderCalendar();
+    renderDrawer();
+    renderStats();
+  }
+
+  function renderCalendar() {
+    computeMaxIntensity();
+    const grid = document.getElementById('calendar-grid');
+    grid.innerHTML = '';
+
+    const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+    const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+    const daysInPrevMonth = new Date(viewYear, viewMonth, 0).getDate();
+    const todayK = todayKey();
+    const compact = isCompact();
+    const maxLines = compact ? 3 : 5;
+    const fragment = document.createDocumentFragment();
+
+    for (let i = 0; i < 42; i++) {
+      let cellYear = viewYear;
+      let cellMonth = viewMonth;
+      let cellDay;
+      if (i < firstDay) {
+        cellMonth--;
+        if (cellMonth < 0) { cellMonth = 11; cellYear--; }
+        cellDay = daysInPrevMonth - (firstDay - 1 - i);
+      } else if (i >= firstDay + daysInMonth) {
+        cellMonth++;
+        if (cellMonth > 11) { cellMonth = 0; cellYear++; }
+        cellDay = i - firstDay - daysInMonth + 1;
+      } else {
+        cellDay = i - firstDay + 1;
+      }
+
+      const key = dateKey(cellYear, cellMonth, cellDay);
+      const isOtherMonth = cellMonth !== viewMonth;
+      const isToday = key === todayK;
+      const dayData = data.days[key];
+      const trained = !!(dayData && dayData.length > 0);
+      const intensity = dayIntensity(dayData);
+
+      const cell = document.createElement('div');
+      cell.className = 'day-cell';
+      cell.dataset.key = key;
+      if (isOtherMonth) cell.classList.add('other-month');
+      if (isToday) cell.classList.add('today');
+      if (trained) cell.classList.add('has-training');
+
+      if (intensity > 0 && maxIntensity > 0) {
+        const t = Math.min(1, intensity / maxIntensity);
+        cell.style.background = `linear-gradient(180deg, rgba(255,107,53,${0.10 + t * 0.30}), var(--card))`;
+      }
+
+      const numSpan = document.createElement('span');
+      numSpan.className = 'day-num';
+      numSpan.textContent = cellDay;
+      cell.appendChild(numSpan);
+
+      if (trained) {
+        const lines = document.createElement('div');
+        lines.className = 'day-lines';
+        const summaries = dayData.map(ex => {
+          const unit = ex.unit || getExerciseUnit(ex.name);
+          return { text: formatExerciseSummary(ex, unit), unit };
+        }).filter(s => s.text);
+
+        const shown = summaries.slice(0, maxLines);
+        for (const s of shown) {
+          const line = document.createElement('div');
+          line.className = `day-line ${s.unit}`;
+          line.textContent = s.text;
+          line.title = s.text;
+          lines.appendChild(line);
+        }
+        if (summaries.length > maxLines) {
+          const more = document.createElement('div');
+          more.className = 'day-more';
+          more.textContent = `+${summaries.length - maxLines}`;
+          more.title = `还有 ${summaries.length - maxLines} 项，悬停查看全部`;
+          lines.appendChild(more);
+        }
+        cell.appendChild(lines);
+      }
+
+      // 用 mousedown 处理拖拽，mouseup 决定是点击还是拖拽
+      cell.addEventListener('mousedown', (e) => onCellMouseDown(e, cell, key));
+      if (trained) attachCellHover(cell, key, dayData);
+      fragment.appendChild(cell);
+    }
+
+    grid.appendChild(fragment);
+    document.getElementById('month-label').textContent = `${viewYear} 年 ${viewMonth + 1} 月`;
+
+    // 重新渲染时如果之前在拖拽，恢复选中/落点状态
+    if (boxStart && isBoxSelecting) {
+      // 重置即可（拖拽状态在新一轮渲染中已失效）
+      cancelBoxSelection();
+    }
+    applySelectedState();
+  }
+
+  function attachCellHover(cell, key, dayData) {
+    cell.addEventListener('mouseenter', () => {
+      if (isCompact() || boxStart) return;
+      clearTimeout(hoverTimeout);
+      hoverTimeout = setTimeout(() => {
+        if (!boxStart) showDayTooltip(cell, key, dayData);
+      }, 260);
+    });
+    cell.addEventListener('mouseleave', () => {
+      if (boxStart) return;
+      clearTimeout(hoverTimeout);
+      hideDayTooltip();
+    });
+  }
+
+  function showDayTooltip(cellEl, key, dayData) {
+    const tooltip = document.getElementById('day-tooltip');
+    const dateObj = parseKey(key);
+    const weekday = ['日', '一', '二', '三', '四', '五', '六'][dateObj.getDay()];
+
+    let bodyHtml = '<div class="day-tooltip-body">';
+    for (const ex of dayData) {
+      const unit = ex.unit || getExerciseUnit(ex.name);
+      const tag = UNIT_LABELS[unit].tag;
+      bodyHtml += `<div class="day-tooltip-exercise ${unit}">
+        <div class="day-tooltip-exercise-name">
+          ${escapeHtml(ex.name)}
+          <span class="unit-tag ${unit}">${tag}</span>
+        </div>`;
+
+      if (unit === 'distance') {
+        const total = ex.sets.reduce((s, x) => s + (Number(x.distance) || 0), 0);
+        if (ex.sets.length === 1) {
+          bodyHtml += `<div class="day-tooltip-set"><span class="set-idx">·</span><span class="set-val">${formatNum(total)} km</span></div>`;
+        } else {
+          bodyHtml += `<div class="day-tooltip-set"><span class="set-idx">${ex.sets.length}组</span><span class="set-val">合计 ${formatNum(total)} km</span></div>`;
+          ex.sets.forEach((s, i) => {
+            bodyHtml += `<div class="day-tooltip-set"><span class="set-idx">${i + 1}</span><span class="set-val">${formatNum(s.distance || 0)} km</span></div>`;
+          });
+        }
+      } else if (unit === 'reps') {
+        const total = ex.sets.reduce((s, x) => s + (Number(x.reps) || 0), 0);
+        if (ex.sets.length === 1) {
+          bodyHtml += `<div class="day-tooltip-set"><span class="set-idx">·</span><span class="set-val">${total} 个</span></div>`;
+        } else {
+          bodyHtml += `<div class="day-tooltip-set"><span class="set-idx">${ex.sets.length}组</span><span class="set-val">合计 ${total} 个</span></div>`;
+          ex.sets.forEach((s, i) => {
+            bodyHtml += `<div class="day-tooltip-set"><span class="set-idx">${i + 1}</span><span class="set-val">${s.reps || 0} 个</span></div>`;
+          });
+        }
+      } else {
+        ex.sets.forEach((s, i) => {
+          bodyHtml += `<div class="day-tooltip-set"><span class="set-idx">${i + 1}</span><span class="set-val">${s.reps || 0} 次 × ${formatNum(s.weight || 0)} kg</span></div>`;
+        });
+      }
+      bodyHtml += `</div>`;
+    }
+    bodyHtml += '</div>';
+
+    tooltip.innerHTML = `
+      <div class="day-tooltip-header">
+        ${dateObj.getMonth() + 1}月${dateObj.getDate()}日 · 周${weekday}
+        <span class="badge">${dayData.length}项</span>
+      </div>
+      ${bodyHtml}
+      <div class="day-tooltip-footer">点击查看/编辑 · 拖拽可复制</div>
+    `;
+
+    tooltip.style.left = '0px';
+    tooltip.style.top = '0px';
+    tooltip.style.visibility = 'hidden';
+    tooltip.classList.add('show');
+
+    requestAnimationFrame(() => {
+      const cellRect = cellEl.getBoundingClientRect();
+      const tipRect = tooltip.getBoundingClientRect();
+      const margin = 8;
+
+      let left = cellRect.left + cellRect.width / 2 - tipRect.width / 2;
+      let top = cellRect.top - tipRect.height - 12;
+
+      if (top < margin) top = cellRect.bottom + 12;
+      if (left < margin) left = margin;
+      if (left + tipRect.width > window.innerWidth - margin) {
+        left = window.innerWidth - tipRect.width - margin;
+      }
+
+      tooltip.style.left = left + 'px';
+      tooltip.style.top = top + 'px';
+      tooltip.style.visibility = '';
+    });
+  }
+
+  function hideDayTooltip() {
+    document.getElementById('day-tooltip').classList.remove('show');
+  }
+
+  function renderDrawer() {
+    const drawer = document.getElementById('drawer');
+
+    if (!selectedDate) {
+      drawer.innerHTML = `
+        <div class="drawer-empty">
+          <div class="icon">📅</div>
+          <div>点击左侧任意日期</div>
+          <div class="hint">记录训练 · 追踪进步</div>
+        </div>
+      `;
+      drawer.classList.remove('open');
+      return;
+    }
+
+    const dayData = data.days[selectedDate] || [];
+    const dateObj = parseKey(selectedDate);
+    const weekday = ['日', '一', '二', '三', '四', '五', '六'][dateObj.getDay()];
+    const dateLabel = `${dateObj.getMonth() + 1} 月 ${dateObj.getDate()} 日 · 周${weekday}`;
+    const isEmpty = dayData.length === 0;
+    const restMsg = REST_MESSAGES[Math.floor(Math.random() * REST_MESSAGES.length)];
+
+    let bodyHtml;
+    if (isEmpty) {
+      bodyHtml = `
+        <div class="drawer-empty">
+          <div class="icon">😴</div>
+          <div>${restMsg}</div>
+        </div>
+      `;
+    } else {
+      let listHtml = '<div class="exercises-list">';
+      dayData.forEach((ex, exIdx) => {
+        const unit = ex.unit || getExerciseUnit(ex.name);
+        const labels = UNIT_LABELS[unit];
+        listHtml += `<div class="exercise-block" data-ex="${exIdx}">
+          <div class="exercise-head">
+            <div class="exercise-name">${escapeHtml(ex.name)}</div>
+            <span class="exercise-tag ${labels.cssClass}">${labels.tag}</span>
+            <button class="exercise-delete" data-action="delete-ex" data-ex="${exIdx}">删除</button>
+          </div>
+          <div class="sets-table">`;
+        ex.sets.forEach((set, setIdx) => {
+          listHtml += renderSetRow(exIdx, setIdx, ex, unit);
+        });
+        listHtml += `</div>
+          <button class="add-set-btn" data-action="add-set" data-ex="${exIdx}">+ 添加组</button>
+        </div>`;
+      });
+      listHtml += '</div>';
+      bodyHtml = listHtml;
+    }
+
+    const optionsHtml = data.exercises
+      .map(ex => {
+        const tag = UNIT_LABELS[ex.unit || 'weight'].tag;
+        return `<option value="${escapeHtml(ex.name)}">${escapeHtml(ex.name)} · ${escapeHtml(ex.category)} · ${tag}</option>`;
+      })
+      .join('');
+
+    drawer.innerHTML = `
+      <div class="drawer-header">
+        <h2>${dateLabel}</h2>
+        <button class="drawer-close" aria-label="关闭">×</button>
+      </div>
+      <div class="drawer-body">${bodyHtml}</div>
+      <div class="drawer-footer">
+        <select class="exercise-selector" id="exercise-selector">
+          <option value="">+ 选择动作添加...</option>
+          ${optionsHtml}
+        </select>
+        ${!isEmpty ? '<button class="clear-day-btn" id="clear-day">清空当天训练</button>' : ''}
+      </div>
+    `;
+
+    drawer.querySelector('.drawer-close').addEventListener('click', closeDrawer);
+    drawer.querySelectorAll('[data-action="delete-ex"]').forEach(btn => {
+      btn.addEventListener('click', () => deleteExercise(Number(btn.dataset.ex)));
+    });
+    drawer.querySelectorAll('[data-action="delete-set"]').forEach(btn => {
+      btn.addEventListener('click', () => deleteSet(Number(btn.dataset.ex), Number(btn.dataset.set)));
+    });
+    drawer.querySelectorAll('[data-action="add-set"]').forEach(btn => {
+      btn.addEventListener('click', () => addSet(Number(btn.dataset.ex)));
+    });
+    drawer.querySelectorAll('.set-row input').forEach(input => {
+      input.addEventListener('input', updateSet);
+    });
+    drawer.querySelector('#exercise-selector').addEventListener('change', onAddExerciseSelect);
+    const clearBtn = drawer.querySelector('#clear-day');
+    if (clearBtn) clearBtn.addEventListener('click', clearDay);
+
+    if (isCompact()) {
+      requestAnimationFrame(() => drawer.classList.add('open'));
+    }
+  }
+
+  function renderSetRow(exIdx, setIdx, ex, unit) {
+    const labels = UNIT_LABELS[unit];
+    if (unit === 'distance') {
+      return `
+        <div class="set-row unit-distance" data-ex="${exIdx}" data-set="${setIdx}">
+          <div class="set-num">${setIdx + 1}</div>
+          <div class="input-cell">
+            <input type="number" inputmode="decimal" min="0" step="0.1" placeholder="${labels.input}" value="${ex.sets[setIdx].distance ?? ''}" data-field="distance">
+            <span class="unit">${labels.suffix}</span>
+          </div>
+          <button class="set-delete" data-action="delete-set" data-ex="${exIdx}" data-set="${setIdx}" aria-label="删除组">×</button>
+        </div>`;
+    }
+    if (unit === 'reps') {
+      return `
+        <div class="set-row unit-reps" data-ex="${exIdx}" data-set="${setIdx}">
+          <div class="set-num">${setIdx + 1}</div>
+          <div class="input-cell">
+            <input type="number" inputmode="numeric" min="0" placeholder="${labels.input}" value="${ex.sets[setIdx].reps ?? ''}" data-field="reps">
+            <span class="unit">${labels.suffix}</span>
+          </div>
+          <button class="set-delete" data-action="delete-set" data-ex="${exIdx}" data-set="${setIdx}" aria-label="删除组">×</button>
+        </div>`;
+    }
+    return `
+      <div class="set-row unit-weight" data-ex="${exIdx}" data-set="${setIdx}">
+        <div class="set-num">${setIdx + 1}</div>
+        <div class="input-cell">
+          <input type="number" inputmode="numeric" min="0" placeholder="次数" value="${ex.sets[setIdx].reps ?? ''}" data-field="reps">
+          <span class="unit">次</span>
+        </div>
+        <div class="input-cell">
+          <input type="number" inputmode="decimal" min="0" step="0.5" placeholder="${labels.input}" value="${ex.sets[setIdx].weight ?? ''}" data-field="weight">
+          <span class="unit">${labels.suffix}</span>
+        </div>
+        <button class="set-delete" data-action="delete-set" data-ex="${exIdx}" data-set="${setIdx}" aria-label="删除组">×</button>
+      </div>`;
+  }
+
+  function renderStats() {
+    let trainingDays = 0;
+    const totals = { weight: 0, distance: 0, reps: 0 };
+    const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+    for (let d = 1; d <= daysInMonth; d++) {
+      const k = dateKey(viewYear, viewMonth, d);
+      if (hasTraining(k)) trainingDays++;
+      const b = dayBreakdown(data.days[k]);
+      totals.weight += b.weight;
+      totals.distance += b.distance;
+      totals.reps += b.reps;
+    }
+
+    animateNumber(document.getElementById('stat-days'), trainingDays);
+    animateNumber(document.getElementById('stat-streak'), calcCurrentStreak());
+    animateNumber(document.getElementById('stat-max-streak'), calcMaxStreak());
+    document.getElementById('stat-volume').textContent = formatMonthlyVolume(totals);
+  }
+
+  // ---------- actions ----------
+  function selectDate(key) {
+    selectedDate = key;
+    renderDrawer();
+    applySelectedState();
+  }
+  function closeDrawer() {
+    selectedDate = null;
+    const drawer = document.getElementById('drawer');
+    drawer.classList.remove('open');
+    setTimeout(() => {
+      if (!selectedDate) renderDrawer();
+    }, 280);
+    applySelectedState();
+  }
+
+  function getDefaultSet(unit) {
+    if (unit === 'distance') return { distance: 0 };
+    if (unit === 'reps') return { reps: 0 };
+    return { reps: 0, weight: 0 };
+  }
+
+  function addExercise(name) {
+    if (!selectedDate) return;
+    if (!data.days[selectedDate]) data.days[selectedDate] = [];
+    const lib = data.exercises.find(e => e.name === name);
+    const unit = (lib && lib.unit) || 'weight';
+    const lastSet = (data.days[selectedDate].slice(-1)[0] || {}).sets?.slice(-1)[0];
+    let newSet;
+    if (unit === 'distance') newSet = { distance: lastSet?.distance || 0 };
+    else if (unit === 'reps') newSet = { reps: lastSet?.reps || 0 };
+    else newSet = { reps: lastSet?.reps || 0, weight: lastSet?.weight || 0 };
+    data.days[selectedDate].push({ name, unit, sets: [newSet] });
+    saveData();
+    renderDrawer();
+    renderCalendar();
+    renderStats();
+  }
+
+  function deleteExercise(exIdx) {
+    if (!selectedDate || !data.days[selectedDate]) return;
+    data.days[selectedDate].splice(exIdx, 1);
+    if (data.days[selectedDate].length === 0) delete data.days[selectedDate];
+    saveData();
+    renderDrawer();
+    renderCalendar();
+    renderStats();
+  }
+
+  function addSet(exIdx) {
+    if (!selectedDate || !data.days[selectedDate]) return;
+    const ex = data.days[selectedDate][exIdx];
+    if (!ex) return;
+    const unit = ex.unit || getExerciseUnit(ex.name);
+    const last = ex.sets.slice(-1)[0];
+    let ns;
+    if (unit === 'distance') ns = { distance: last?.distance || 0 };
+    else if (unit === 'reps') ns = { reps: last?.reps || 0 };
+    else ns = { reps: last?.reps || 0, weight: last?.weight || 0 };
+    ex.sets.push(ns);
+    saveData();
+    renderDrawer();
+    renderCalendar();
+    renderStats();
+  }
+
+  function deleteSet(exIdx, setIdx) {
+    if (!selectedDate || !data.days[selectedDate]) return;
+    const ex = data.days[selectedDate][exIdx];
+    if (!ex) return;
+    ex.sets.splice(setIdx, 1);
+    if (ex.sets.length === 0) data.days[selectedDate].splice(exIdx, 1);
+    if (data.days[selectedDate].length === 0) delete data.days[selectedDate];
+    saveData();
+    renderDrawer();
+    renderCalendar();
+    renderStats();
+  }
+
+  function updateSet(e) {
+    const input = e.target;
+    const row = input.closest('.set-row');
+    if (!row) return;
+    const exIdx = Number(row.dataset.ex);
+    const setIdx = Number(row.dataset.set);
+    const field = input.dataset.field;
+    const val = parseFloat(input.value) || 0;
+    const ex = data.days[selectedDate]?.[exIdx];
+    if (!ex) return;
+    ex.sets[setIdx][field] = val;
+    saveData();
+    renderCalendar();
+    renderStats();
+  }
+
+  function onAddExerciseSelect(e) {
+    const val = e.target.value;
+    e.target.value = '';
+    if (!val) return;
+    addExercise(val);
+  }
+
+  function clearDay() {
+    if (!selectedDate) return;
+    const dateObj = parseKey(selectedDate);
+    const label = `${dateObj.getMonth() + 1} 月 ${dateObj.getDate()} 日`;
+    if (!confirm(`确认清空 ${label} 的所有训练？`)) return;
+    delete data.days[selectedDate];
+    saveData();
+    renderDrawer();
+    renderCalendar();
+    renderStats();
+  }
+
+  // ---------- box selection ----------
+  function onCellMouseDown(e, cell, key) {
+    if (e.button !== 0) return;
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT') return;
+
+    boxStart = { x: e.clientX, y: e.clientY };
+    boxStartKey = key;
+    isBoxSelecting = false;
+    boxSelectedKeys = new Set();
+    currentDropKey = null;
+
+    if (hasTraining(key)) {
+      boxSelectedKeys.add(key);
+      cell.classList.add('box-selected');
+    }
+
+    document.body.style.userSelect = 'none';
+    document.body.classList.add('box-dragging');
+    hideDayTooltip();
+  }
+
+  function rectsIntersect(a, b) {
+    return !(b.right < a.left || b.left > a.right || b.bottom < a.top || b.top > a.bottom);
+  }
+
+  function getRectBounds(rectEl) {
+    return {
+      left: parseFloat(rectEl.style.left) || 0,
+      top: parseFloat(rectEl.style.top) || 0,
+      right: (parseFloat(rectEl.style.left) || 0) + (parseFloat(rectEl.style.width) || 0),
+      bottom: (parseFloat(rectEl.style.top) || 0) + (parseFloat(rectEl.style.height) || 0)
+    };
+  }
+
+  function updateBoxRect(x, y) {
+    const rect = document.getElementById('box-rect');
+    const left = Math.min(boxStart.x, x);
+    const top = Math.min(boxStart.y, y);
+    const width = Math.abs(x - boxStart.x);
+    const height = Math.abs(y - boxStart.y);
+    rect.style.left = left + 'px';
+    rect.style.top = top + 'px';
+    rect.style.width = width + 'px';
+    rect.style.height = height + 'px';
+    rect.classList.add('show');
+  }
+
+  function updateSelectionState() {
+    const rectEl = document.getElementById('box-rect');
+    const bounds = getRectBounds(rectEl);
+
+    // 落点 = 矩形对角处的单元（远离 mousedown 起点的那一侧）
+    const cornerX = boxStart.x < bounds.right - 2 ? bounds.right - 2 : bounds.left + 2;
+    const cornerY = boxStart.y < bounds.bottom - 2 ? bounds.bottom - 2 : bounds.top + 2;
+
+    let dropCell = null;
+    const els = document.elementsFromPoint(cornerX, cornerY);
+    for (const el of els) {
+      if (el.classList && el.classList.contains('day-cell')) {
+        dropCell = el;
+        break;
+      }
+    }
+    const dropKey = dropCell ? dropCell.dataset.key : null;
+
+    // 源 = 矩形内所有有训练的单元（包括落点也允许；复制时会跳过落点本身）
+    const newSelected = new Set();
+    document.querySelectorAll('.day-cell').forEach(cell => {
+      if (!cell.dataset.key) return;
+      const cellRect = cell.getBoundingClientRect();
+      if (!rectsIntersect(bounds, cellRect)) return;
+      const k = cell.dataset.key;
+      if (hasTraining(k)) {
+        newSelected.add(k);
+      }
+    });
+
+    // 更新视觉
+    document.querySelectorAll('.day-cell').forEach(cell => {
+      if (!cell.dataset.key) return;
+      const k = cell.dataset.key;
+      cell.classList.remove('box-selected');
+      cell.classList.remove('drop-target');
+      if (newSelected.has(k)) cell.classList.add('box-selected');
+    });
+    if (dropCell && dropCell.dataset.key) {
+      dropCell.classList.remove('box-selected');
+      dropCell.classList.add('drop-target');
+    }
+
+    boxSelectedKeys = newSelected;
+    currentDropKey = dropKey;
+  }
+
+  function cancelBoxSelection() {
+    document.querySelectorAll('.day-cell.box-selected, .day-cell.drop-target').forEach(c => {
+      c.classList.remove('box-selected');
+      c.classList.remove('drop-target');
+    });
+    document.getElementById('box-rect').classList.remove('show');
+    document.body.style.userSelect = '';
+    document.body.classList.remove('box-dragging', 'box-selecting');
+    boxStart = null;
+    boxStartKey = null;
+    isBoxSelecting = false;
+    boxSelectedKeys.clear();
+    currentDropKey = null;
+  }
+
+  function performCopy(sourceKeys, targetKey) {
+    if (sourceKeys.size === 0) return;
+
+    let copiedCount = 0;
+    if (!data.days[targetKey]) data.days[targetKey] = [];
+
+    for (const k of sourceKeys) {
+      if (k === targetKey) continue;
+      const dayData = data.days[k] || [];
+      for (const ex of dayData) {
+        data.days[targetKey].push({
+          name: ex.name,
+          unit: ex.unit,
+          sets: ex.sets.map(s => ({ ...s }))
+        });
+        copiedCount++;
+      }
+    }
+
+    if (copiedCount === 0) return;
+
+    saveData();
+    renderCalendar();
+    renderStats();
+
+    const dateObj = parseKey(targetKey);
+    const label = `${dateObj.getMonth() + 1}月${dateObj.getDate()}日`;
+    showToast(`已复制 ${copiedCount} 项训练到 ${label}`, '✓');
+  }
+
+  function showToast(message, icon = '✓') {
+    const toast = document.getElementById('toast');
+    toast.innerHTML = `<span class="toast-icon">${icon}</span><span>${escapeHtml(message)}</span>`;
+    toast.classList.add('show');
+    clearTimeout(toast._timeout);
+    toast._timeout = setTimeout(() => toast.classList.remove('show'), 2400);
+  }
+
+  function applySelectedState() {
+    // 把抽屉选中状态同步到日历
+    document.querySelectorAll('.day-cell').forEach(cell => {
+      if (cell.dataset.key === selectedDate) {
+        cell.classList.add('selected');
+      } else {
+        cell.classList.remove('selected');
+      }
+    });
+  }
+
+  // ---------- manage modal ----------
+  function openManageModal() {
+    renderManageModal();
+    document.getElementById('manage-modal-backdrop').classList.add('open');
+  }
+  function closeManageModal() {
+    document.getElementById('manage-modal-backdrop').classList.remove('open');
+  }
+
+  function renderManageModal() {
+    const grouped = {};
+    for (const ex of data.exercises) {
+      const cat = ex.category || '其他';
+      if (!grouped[cat]) grouped[cat] = [];
+      grouped[cat].push(ex);
+    }
+    for (const cat of Object.keys(grouped)) {
+      grouped[cat].sort((a, b) => a.name.localeCompare(b.name, 'zh'));
+    }
+
+    let listHtml = '';
+    for (const cat of CATEGORY_ORDER) {
+      const items = grouped[cat];
+      if (!items || items.length === 0) continue;
+      listHtml += `<div class="exercise-group"><h3>${escapeHtml(cat)} · ${items.length}</h3>`;
+      for (const ex of items) {
+        const u = ex.unit || 'weight';
+        const labels = UNIT_LABELS[u];
+        listHtml += `
+          <div class="exercise-row">
+            <div class="exercise-row-info">
+              <div class="exercise-row-name">${escapeHtml(ex.name)}</div>
+              <div class="exercise-row-meta">
+                <span>${escapeHtml(ex.category)}</span>
+                <span>·</span>
+                <span class="meta-unit ${labels.cssClass}">${labels.tag}${u === 'weight' ? ' kg' : u === 'distance' ? ' km' : ''}</span>
+              </div>
+            </div>
+            <button class="exercise-row-delete" data-action="delete-lib" data-name="${escapeHtml(ex.name)}">删除</button>
+          </div>
+        `;
+      }
+      listHtml += '</div>';
+    }
+    if (!listHtml) {
+      listHtml = '<div style="text-align:center;color:var(--text-dim);padding:24px;">动作库为空</div>';
+    }
+
+    document.getElementById('manage-modal-body').innerHTML = `
+      <div class="modal-tip">
+        💡 <b>重量</b>(kg) 用于杠铃/哑铃类；<b>距离</b>(km) 用于跑步/骑行；<b>次数</b> 用于俯卧撑/引体等。<br>
+        删除动作不会影响历史训练记录。
+      </div>
+      ${listHtml}
+      <button class="add-exercise-toggle" id="show-add-form">+ 新建动作</button>
+      <div class="add-exercise-form" id="add-form" style="display:none">
+        <h4>新建动作</h4>
+        <div class="form-field">
+          <label>名称</label>
+          <input type="text" id="new-ex-name" maxlength="20" placeholder="例如：卧推">
+        </div>
+        <div class="form-field">
+          <label>分类</label>
+          <select id="new-ex-category">
+            <option value="腿">腿</option>
+            <option value="推">推</option>
+            <option value="拉">拉</option>
+            <option value="核心">核心</option>
+            <option value="有氧">有氧</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>单位</label>
+          <select id="new-ex-unit">
+            <option value="weight">重量 (kg)</option>
+            <option value="distance">距离 (km)</option>
+            <option value="reps">次数</option>
+          </select>
+        </div>
+        <div class="form-actions">
+          <button class="btn-ghost" id="cancel-add">取消</button>
+          <button class="btn-primary" id="submit-add">添加</button>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('show-add-form').addEventListener('click', () => {
+      document.getElementById('add-form').style.display = 'block';
+      document.getElementById('show-add-form').style.display = 'none';
+      document.getElementById('new-ex-name').focus();
+    });
+    document.getElementById('cancel-add').addEventListener('click', () => {
+      document.getElementById('add-form').style.display = 'none';
+      document.getElementById('show-add-form').style.display = 'block';
+    });
+    document.getElementById('submit-add').addEventListener('click', submitAddExercise);
+    document.getElementById('new-ex-name').addEventListener('keydown', e => {
+      if (e.key === 'Enter') submitAddExercise();
+    });
+    document.querySelectorAll('[data-action="delete-lib"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const name = btn.dataset.name;
+        if (!confirm(`确认删除「${name}」？\n历史训练记录不受影响。`)) return;
+        data.exercises = data.exercises.filter(e => e.name !== name);
+        saveData();
+        renderManageModal();
+        if (selectedDate) renderDrawer();
+      });
+    });
+  }
+
+  function submitAddExercise() {
+    const name = document.getElementById('new-ex-name').value.trim();
+    const category = document.getElementById('new-ex-category').value;
+    const unit = document.getElementById('new-ex-unit').value;
+    if (!name) { alert('请输入动作名称'); return; }
+    if (data.exercises.some(e => e.name === name)) {
+      alert('动作已存在');
+      document.getElementById('new-ex-name').value = '';
+      return;
+    }
+    data.exercises.push({ name, category, unit });
+    saveData();
+    renderManageModal();
+    if (selectedDate) renderDrawer();
+  }
+
+  // ---------- import / export ----------
+  function exportData() {
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `fitness-calendar-${todayKey()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+  function importData(file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const parsed = JSON.parse(e.target.result);
+        if (!parsed.exercises || !parsed.days || !parsed.meta) {
+          alert('文件格式不正确：缺少必要字段'); return;
+        }
+        if (!Array.isArray(parsed.exercises) || typeof parsed.days !== 'object') {
+          alert('文件格式不正确：字段类型错误'); return;
+        }
+        if (!confirm('确认导入？这将覆盖现有所有数据。')) return;
+        data = parsed;
+        saveData();
+        migrateData();
+        renderAll();
+        alert('导入成功 ✓');
+      } catch (err) {
+        alert('解析失败：' + err.message);
+      }
+    };
+    reader.onerror = () => alert('读取文件失败');
+    reader.readAsText(file);
+  }
+
+  // ---------- init ----------
+  function init() {
+    const t = new Date();
+    viewYear = t.getFullYear();
+    viewMonth = t.getMonth();
+
+    migrateData();
+
+    document.getElementById('prev-month').addEventListener('click', () => {
+      viewMonth--;
+      if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+      renderCalendar();
+      renderStats();
+    });
+    document.getElementById('next-month').addEventListener('click', () => {
+      viewMonth++;
+      if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+      renderCalendar();
+      renderStats();
+    });
+    document.getElementById('today-btn').addEventListener('click', () => {
+      const now = new Date();
+      viewYear = now.getFullYear();
+      viewMonth = now.getMonth();
+      selectedDate = todayKey();
+      renderCalendar();
+      renderDrawer();
+      renderStats();
+    });
+
+    document.getElementById('manage-exercises-btn').addEventListener('click', openManageModal);
+    document.getElementById('manage-modal-close').addEventListener('click', closeManageModal);
+    document.getElementById('manage-modal-backdrop').addEventListener('click', e => {
+      if (e.target.id === 'manage-modal-backdrop') closeManageModal();
+    });
+
+    document.getElementById('export-btn').addEventListener('click', exportData);
+    document.getElementById('import-btn').addEventListener('click', () => {
+      document.getElementById('import-file').click();
+    });
+    document.getElementById('import-file').addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (file) importData(file);
+      e.target.value = '';
+    });
+
+    // 全局 mousemove：处理框选
+    document.addEventListener('mousemove', (e) => {
+      if (!boxStart) return;
+      const dx = e.clientX - boxStart.x;
+      const dy = e.clientY - boxStart.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (!isBoxSelecting && dist > 5) {
+        isBoxSelecting = true;
+        document.body.classList.add('box-selecting');
+      }
+
+      if (isBoxSelecting) {
+        updateBoxRect(e.clientX, e.clientY);
+        updateSelectionState();
+      }
+    });
+
+    // 全局 mouseup：处理点击或复制
+    document.addEventListener('mouseup', (e) => {
+      if (!boxStart) return;
+
+      const wasDrag = isBoxSelecting;
+      const dragDist = Math.sqrt(
+        Math.pow(e.clientX - boxStart.x, 2) + Math.pow(e.clientY - boxStart.y, 2)
+      );
+
+      if (!wasDrag || dragDist < 8) {
+        // 视为点击：打开抽屉
+        if (boxStartKey) selectDate(boxStartKey);
+      } else {
+        // 框选完成：执行复制
+        if (currentDropKey && boxSelectedKeys.size > 0) {
+          const validSources = [...boxSelectedKeys].filter(k => k !== currentDropKey);
+          if (validSources.length > 0) {
+            performCopy(new Set(validSources), currentDropKey);
+          }
+        }
+      }
+
+      cancelBoxSelection();
+    });
+
+    // ESC 取消
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && boxStart) {
+        cancelBoxSelection();
+      }
+    });
+
+    // 点击空白处隐藏 tooltip（不影响拖拽状态）
+    document.addEventListener('mousedown', (e) => {
+      if (!e.target.closest('.day-cell')) hideDayTooltip();
+    });
+
+    renderAll();
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
