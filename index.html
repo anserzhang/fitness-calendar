@@ -1359,6 +1359,8 @@ footer {
     return decodeURIComponent(escape(atob(str.replace(/\s/g, ''))));
   }
 
+  let lastSyncError = null;
+
   async function gh(path, opts = {}) {
     const headers = {
       'Accept': 'application/vnd.github+json',
@@ -1375,9 +1377,12 @@ footer {
       throw err;
     }
     if (!res.ok) {
-      const err = new Error(`GitHub API ${res.status}`);
+      let body = null;
+      try { body = await res.json(); } catch (_) {}
+      const apiMsg = (body && body.message) ? body.message : res.statusText || '未知错误';
+      const err = new Error(`HTTP ${res.status}：${apiMsg}`);
       err.status = res.status;
-      try { err.body = await res.json(); } catch (_) {}
+      err.body = body;
       throw err;
     }
     return res;
@@ -1450,6 +1455,7 @@ footer {
       const sha = meta ? meta.sha : null;
       await pushRemote(data, sha);
       retryAttempt = 0;
+      lastSyncError = null;
       setSyncState('idle');
     } catch (err) {
       if (err.status === 409) {
@@ -1457,10 +1463,12 @@ footer {
           const meta = await fetchRemoteMeta();
           await pushRemote(data, meta ? meta.sha : null);
           retryAttempt = 0;
+          lastSyncError = null;
           setSyncState('idle');
           return;
         } catch (_) { /* fall through to error */ }
       }
+      lastSyncError = err;
       setSyncState('error');
       scheduleRetry();
     }
@@ -1522,6 +1530,7 @@ footer {
       }
     } catch (err) {
       console.error('云端同步失败：', err);
+      lastSyncError = err;
       setSyncState('error');
     } finally {
       bootstrapping = false;
@@ -2552,12 +2561,23 @@ footer {
         <label>${hasToken ? '更新 Token' : '粘贴新 Token'}</label>
         <input type="password" class="pat-input" id="pat-input" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off" spellcheck="false">
       </div>
-      <div id="pat-error" style="color:var(--training);font-size:12px;margin-bottom:12px;display:none;"></div>
+      <div id="pat-error" style="color:var(--training);font-size:12px;margin-bottom:12px;display:none;white-space:pre-line;"></div>
       <div class="form-actions">
         <button class="btn-ghost" id="pat-cancel">取消</button>
         ${hasToken ? '<button class="btn-ghost" id="pat-clear" style="color:var(--training);border-color:rgba(255,107,53,0.3);">清除 Token</button>' : ''}
         <button class="btn-primary" id="pat-save">保存并连接</button>
       </div>
+      ${hasToken ? `
+        <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border);">
+          <button class="btn-ghost" id="pat-retry" style="width:100%;">↻ 立即重新同步</button>
+          ${lastSyncError ? `
+            <div style="margin-top:12px;padding:10px 12px;background:var(--danger);border-radius:8px;font-size:11px;color:var(--text);line-height:1.6;white-space:pre-line;">
+              <b style="color:var(--training)">上次同步失败：</b><br>
+              ${escapeHtml(friendlyError(lastSyncError))}
+            </div>
+          ` : ''}
+        </div>
+      ` : ''}
       <div style="font-size:11px;color:var(--text-faint);margin-top:16px;line-height:1.6;">
         ⚠️ Token 存在浏览器 localStorage 里，请勿在公共电脑输入。
         如果仓库是公开的，你的训练记录也会出现在公开 commit 历史里。
@@ -2571,6 +2591,25 @@ footer {
     });
     const clearBtn = body.querySelector('#pat-clear');
     if (clearBtn) clearBtn.addEventListener('click', onClearToken);
+    const retryBtn = body.querySelector('#pat-retry');
+    if (retryBtn) retryBtn.addEventListener('click', onManualRetry);
+  }
+
+  async function onManualRetry() {
+    const btn = document.getElementById('pat-retry');
+    btn.disabled = true;
+    btn.textContent = '同步中...';
+    clearTimeout(retryTimer);
+    retryAttempt = 0;
+    await syncNow().catch(() => {});
+    btn.disabled = false;
+    btn.textContent = '↻ 立即重新同步';
+    if (syncState === 'idle') {
+      closeSettingsModal();
+      showToast('同步成功 ✓', '✓');
+    } else {
+      renderSettingsModal();
+    }
   }
 
   async function onSaveToken() {
@@ -2590,6 +2629,8 @@ footer {
     authToken = newToken;
     try {
       const user = await validateToken();
+      saveBtn.textContent = '检查仓库权限...';
+      await checkRepoAccess();
       saveToken(newToken);
       saveBtn.disabled = false;
       saveBtn.textContent = '保存并连接';
@@ -2598,13 +2639,40 @@ footer {
       await bootstrapRemote();
     } catch (err) {
       authToken = prevToken;
-      errEl.textContent = err.status === 401
-        ? 'Token 无效，请检查是否复制完整且勾选了 public_repo 权限'
-        : (err.message || '连接失败');
+      errEl.textContent = friendlyError(err);
       errEl.style.display = 'block';
       saveBtn.disabled = false;
       saveBtn.textContent = '保存并连接';
     }
+  }
+
+  async function checkRepoAccess() {
+    const { owner, repo } = REPO;
+    await gh(`/repos/${owner}/${repo}`);
+  }
+
+  function friendlyError(err) {
+    if (err.status === 0) {
+      return '网络错误，请检查网络连接后重试';
+    }
+    if (err.status === 401) {
+      return 'Token 无效或已过期，请重新创建并复制完整';
+    }
+    if (err.status === 403) {
+      const msg = err.body && err.body.message || '';
+      if (msg.includes('rate limit')) return 'API 限速，请稍后再试';
+      if (msg.includes('Resource not accessible')) {
+        return `Token 对仓库 ${REPO.owner}/${REPO.repo} 没有写权限。\n请确认：① PAT 创建时勾选了 public_repo（或 repo）权限；② 创建 PAT 的 GitHub 账号是 ${REPO.owner} 或该仓库的协作者。`;
+      }
+      return '权限不足：' + msg;
+    }
+    if (err.status === 404) {
+      return `找不到仓库 ${REPO.owner}/${REPO.repo}，或 Token 无权访问。\n请确认仓库存在且 Token 所属账号对它有写权限。`;
+    }
+    if (err.status === 409) {
+      return '数据冲突，请稍后重试';
+    }
+    return err.message || '连接失败';
   }
 
   function onClearToken() {
