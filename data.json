@@ -101,6 +101,16 @@
             "distance": 4.2
           }
         ]
+      },
+      {
+        "name": "保加利亚蹲",
+        "unit": "weight",
+        "sets": [
+          {
+            "reps": 0,
+            "weight": 0
+          }
+        ]
       }
     ]
   },
