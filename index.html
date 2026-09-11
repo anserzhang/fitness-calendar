@@ -1657,19 +1657,14 @@ footer {
         changed = true;
       }
     }
-    // 给已有用户的动作库追加新加的默认动作（已存在的不会重复）；
-    // 已存在的也要把 category/unit 校准到 DEFAULT_EXERCISES 的最新定义
+    // 已存在的动作把 category/unit 校准到 DEFAULT_EXERCISES 的最新定义；
+    // 故意不追加缺失的默认动作——用户在动作库中删除的动作必须保持删除。
     for (const def of DEFAULT_EXERCISES) {
       const existing = data.exercises.find(e => e.name === def.name);
-      if (!existing) {
-        data.exercises.push({ ...def });
+      if (existing && (existing.category !== def.category || existing.unit !== def.unit)) {
+        existing.category = def.category;
+        existing.unit = def.unit;
         changed = true;
-      } else {
-        if (existing.category !== def.category || existing.unit !== def.unit) {
-          existing.category = def.category;
-          existing.unit = def.unit;
-          changed = true;
-        }
       }
     }
     if (changed) saveData();
