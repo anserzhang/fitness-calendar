@@ -36,21 +36,6 @@
       "unit": "weight"
     },
     {
-      "name": "腿弯举",
-      "category": "腿",
-      "unit": "weight"
-    },
-    {
-      "name": "腿屈伸",
-      "category": "腿",
-      "unit": "weight"
-    },
-    {
-      "name": "提踵",
-      "category": "腿",
-      "unit": "weight"
-    },
-    {
       "name": "俯卧撑",
       "category": "推",
       "unit": "reps"
@@ -74,11 +59,6 @@
       "name": "弓步拉伸髂腰肌",
       "category": "瑜伽",
       "unit": "time"
-    },
-    {
-      "name": "臀冲",
-      "category": "腿",
-      "unit": "weight"
     },
     {
       "name": "髋外展",
