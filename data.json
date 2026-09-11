@@ -74,6 +74,36 @@
       "name": "弓步拉伸髂腰肌",
       "category": "瑜伽",
       "unit": "time"
+    },
+    {
+      "name": "臀冲",
+      "category": "腿",
+      "unit": "weight"
+    },
+    {
+      "name": "髋外展",
+      "category": "腿",
+      "unit": "weight"
+    },
+    {
+      "name": "行走弓步",
+      "category": "腿",
+      "unit": "weight"
+    },
+    {
+      "name": "箱式深蹲",
+      "category": "腿",
+      "unit": "weight"
+    },
+    {
+      "name": "早安式",
+      "category": "腿",
+      "unit": "weight"
+    },
+    {
+      "name": "哥萨克深蹲",
+      "category": "腿",
+      "unit": "weight"
     }
   ],
   "days": {
