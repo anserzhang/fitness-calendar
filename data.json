@@ -96,7 +96,15 @@
         "unit": "weight",
         "sets": [
           {
-            "reps": 10,
+            "reps": 12,
+            "weight": 0
+          },
+          {
+            "reps": 12,
+            "weight": 0
+          },
+          {
+            "reps": 12,
             "weight": 0
           }
         ]
