@@ -64,6 +64,16 @@
       "name": "侧抬腿",
       "category": "腿",
       "unit": "weight"
+    },
+    {
+      "name": "下犬式",
+      "category": "瑜伽",
+      "unit": "time"
+    },
+    {
+      "name": "弓步拉伸髂腰肌",
+      "category": "瑜伽",
+      "unit": "time"
     }
   ],
   "days": {
