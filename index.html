@@ -17,6 +17,8 @@
   --cardio-dim: rgba(74, 222, 128, 0.18);
   --body: #FBBF24;
   --body-dim: rgba(251, 191, 36, 0.18);
+  --time: #C084FC;
+  --time-dim: rgba(192, 132, 252, 0.18);
   --text: #E8ECF1;
   --text-dim: #8B95A7;
   --text-faint: #5C6678;
@@ -247,6 +249,7 @@ body.box-dragging .day-cell { cursor: crosshair !important; }
 .day-line.weight { color: var(--training); background: rgba(255, 107, 53, 0.10); }
 .day-line.distance { color: var(--cardio); background: rgba(74, 222, 128, 0.10); }
 .day-line.reps { color: var(--body); background: rgba(251, 191, 36, 0.10); }
+.day-line.time { color: var(--time); background: rgba(192, 132, 252, 0.10); }
 
 .day-more {
   font-size: 9px;
@@ -399,6 +402,7 @@ body.box-dragging .day-cell { cursor: crosshair !important; }
 .exercise-tag.weight { color: var(--training); border-color: rgba(255, 107, 53, 0.3); }
 .exercise-tag.distance { color: var(--cardio); border-color: rgba(74, 222, 128, 0.3); }
 .exercise-tag.reps { color: var(--body); border-color: rgba(251, 191, 36, 0.3); }
+.exercise-tag.time { color: var(--time); border-color: rgba(192, 132, 252, 0.3); }
 
 .exercise-delete {
   background: transparent;
@@ -425,6 +429,7 @@ body.box-dragging .day-cell { cursor: crosshair !important; }
   align-items: center;
 }
 .set-row.unit-weight { grid-template-columns: 22px 1fr 1fr 28px; }
+.set-row.unit-time { grid-template-columns: 22px 1fr 1fr 28px; }
 .set-row.unit-distance,
 .set-row.unit-reps { grid-template-columns: 22px 1fr 28px; }
 
@@ -683,6 +688,7 @@ footer {
 .day-tooltip-exercise.weight { border-left-color: var(--training); }
 .day-tooltip-exercise.distance { border-left-color: var(--cardio); }
 .day-tooltip-exercise.reps { border-left-color: var(--body); }
+.day-tooltip-exercise.time { border-left-color: var(--time); }
 
 .day-tooltip-exercise-name {
   font-weight: 600;
@@ -704,6 +710,7 @@ footer {
 .day-tooltip-exercise-name .unit-tag.weight { color: var(--training); background: rgba(255, 107, 53, 0.15); }
 .day-tooltip-exercise-name .unit-tag.distance { color: var(--cardio); background: rgba(74, 222, 128, 0.15); }
 .day-tooltip-exercise-name .unit-tag.reps { color: var(--body); background: rgba(251, 191, 36, 0.15); }
+.day-tooltip-exercise-name .unit-tag.time { color: var(--time); background: rgba(192, 132, 252, 0.15); }
 
 .day-tooltip-set {
   font-size: 11px;
@@ -851,6 +858,7 @@ footer {
 .exercise-row-meta .meta-unit.weight { color: var(--training); }
 .exercise-row-meta .meta-unit.distance { color: var(--cardio); }
 .exercise-row-meta .meta-unit.reps { color: var(--body); }
+.exercise-row-meta .meta-unit.time { color: var(--time); }
 
 .exercise-row-delete {
   background: transparent;
@@ -1295,7 +1303,9 @@ footer {
     { name: '早安式', category: '腿', unit: 'weight' },
     { name: '哥萨克深蹲', category: '腿', unit: 'weight' },
     { name: '俯卧撑', category: '推', unit: 'reps' },
-    { name: '慢跑', category: '有氧', unit: 'distance' }
+    { name: '慢跑', category: '有氧', unit: 'distance' },
+    { name: '下犬式', category: '瑜伽', unit: 'time' },
+    { name: '弓步拉伸髂腰肌', category: '瑜伽', unit: 'time' }
   ];
 
   const REST_MESSAGES = [
@@ -1310,10 +1320,11 @@ footer {
   const UNIT_LABELS = {
     weight: { tag: '重量', input: '重量', suffix: 'kg', cssClass: 'weight' },
     distance: { tag: '距离', input: '距离', suffix: 'km', cssClass: 'distance' },
-    reps: { tag: '次数', input: '次数', suffix: '个', cssClass: 'reps' }
+    reps: { tag: '次数', input: '次数', suffix: '个', cssClass: 'reps' },
+    time: { tag: '时长', input: '时长', suffix: '秒', cssClass: 'time' }
   };
 
-  const CATEGORY_ORDER = ['腿', '推', '拉', '核心', '有氧', '其他'];
+  const CATEGORY_ORDER = ['腿', '推', '拉', '核心', '有氧', '瑜伽', '其他'];
 
   // ---------- sync (GitHub-backed cross-device sync) ----------
   const TOKEN_KEY = 'fitness-calendar-token';
@@ -1454,33 +1465,32 @@ footer {
   async function syncNow() {
     if (!authToken) return;
     setSyncState('syncing');
-    try {
-      const meta = await fetchRemoteMeta();
-      const sha = meta ? meta.sha : null;
-      await pushRemote(data, sha);
-      retryAttempt = 0;
-      lastSyncError = null;
-      setSyncState('idle');
-    } catch (err) {
-      if (err.status === 409) {
-        try {
-          const meta = await fetchRemoteMeta();
-          await pushRemote(data, meta ? meta.sha : null);
-          retryAttempt = 0;
-          lastSyncError = null;
-          setSyncState('idle');
-          return;
-        } catch (_) { /* fall through to error */ }
+    let lastErr = null;
+    // 409 通常是两台设备几乎同时推送导致的竞态，先快速连试 8 次，每次间隔 200ms
+    // 让对方设备的请求有机会落地。非 409 错误直接跳出。
+    for (let attempt = 0; attempt < 8; attempt++) {
+      try {
+        const meta = await fetchRemoteMeta();
+        const sha = meta ? meta.sha : null;
+        await pushRemote(data, sha);
+        retryAttempt = 0;
+        lastSyncError = null;
+        setSyncState('idle');
+        return;
+      } catch (err) {
+        lastErr = err;
+        if (err.status !== 409) break;
+        if (attempt < 7) await new Promise(r => setTimeout(r, 200));
       }
-      lastSyncError = err;
-      setSyncState('error');
-      scheduleRetry();
     }
+    lastSyncError = lastErr;
+    setSyncState('error');
+    scheduleRetry();
   }
 
   function scheduleRetry() {
     clearTimeout(retryTimer);
-    const delay = Math.min(SYNC_RETRY_MAX_MS, 5000 * Math.pow(2, retryAttempt));
+    const delay = Math.min(SYNC_RETRY_MAX_MS, 2000 * Math.pow(2, retryAttempt));
     retryAttempt++;
     retryTimer = setTimeout(() => {
       syncNow().catch(() => {});
@@ -1604,6 +1614,8 @@ footer {
 
   function migrateData() {
     let changed = false;
+    // 瑜伽动作统一改成 time 单位（之前默认是 reps，语义更贴切）
+    const YOGA_NAMES = ['下犬式', '弓步拉伸髂腰肌'];
     for (const k in data.days) {
       const arr = data.days[k];
       if (!Array.isArray(arr)) continue;
@@ -1613,12 +1625,27 @@ footer {
           ex.unit = (lib && lib.unit) || 'weight';
           changed = true;
         }
+        if (YOGA_NAMES.includes(ex.name) && ex.unit === 'reps') {
+          ex.unit = 'time';
+          changed = true;
+        }
         if (!Array.isArray(ex.sets)) ex.sets = [];
       }
     }
     for (const ex of data.exercises) {
       if (!ex.unit) {
         ex.unit = 'weight';
+        changed = true;
+      }
+      if (YOGA_NAMES.includes(ex.name) && ex.unit === 'reps') {
+        ex.unit = 'time';
+        changed = true;
+      }
+    }
+    // 给已有用户的动作库追加新加的默认动作（已存在的不会重复）
+    for (const def of DEFAULT_EXERCISES) {
+      if (!data.exercises.some(e => e.name === def.name)) {
+        data.exercises.push({ ...def });
         changed = true;
       }
     }
@@ -1639,13 +1666,14 @@ footer {
   }
 
   function dayBreakdown(dayData) {
-    const result = { weight: 0, distance: 0, reps: 0 };
+    const result = { weight: 0, distance: 0, reps: 0, time: 0 };
     if (!dayData) return result;
     for (const ex of dayData) {
       const unit = ex.unit || getExerciseUnit(ex.name);
       for (const set of ex.sets) {
         if (unit === 'distance') result.distance += Number(set.distance) || 0;
         else if (unit === 'reps') result.reps += Number(set.reps) || 0;
+        else if (unit === 'time') result.time += (Number(set.reps) || 0) * (Number(set.duration) || 0);
         else result.weight += (Number(set.reps) || 0) * (Number(set.weight) || 0);
       }
     }
@@ -1655,7 +1683,7 @@ footer {
   function dayIntensity(dayData) {
     if (!dayData || dayData.length === 0) return 0;
     const b = dayBreakdown(dayData);
-    return Math.max(b.weight, b.distance * 1000, b.reps * 100);
+    return Math.max(b.weight, b.distance * 1000, b.reps * 100, b.time);
   }
 
   function computeMaxIntensity() {
@@ -1679,6 +1707,14 @@ footer {
       if (total === 0) return name;
       return `${name} ${total}个`;
     }
+    if (unit === 'time') {
+      const totalSets = ex.sets.reduce((s, x) => s + (Number(x.reps) || 0), 0);
+      const totalSeconds = ex.sets.reduce((s, x) => s + (Number(x.reps) || 0) * (Number(x.duration) || 0), 0);
+      if (totalSeconds === 0 && totalSets === 0) return name;
+      const maxDur = Math.max(0, ...ex.sets.map(s => Number(s.duration) || 0));
+      if (totalSets === 0) return `${name} ${formatDuration(totalSeconds)}`;
+      return `${name} ${totalSets}×${formatDuration(maxDur)}`;
+    }
     const setCount = ex.sets.length;
     const maxWeight = Math.max(0, ...ex.sets.map(s => Number(s.weight) || 0));
     const totalReps = ex.sets.reduce((s, x) => s + (Number(x.reps) || 0), 0);
@@ -1691,6 +1727,16 @@ footer {
     if (n >= 10000) return (n / 1000).toFixed(1) + 'k';
     if (!Number.isInteger(n)) return n.toFixed(1);
     return String(n);
+  }
+
+  function formatDuration(seconds) {
+    seconds = Math.max(0, Math.round(Number(seconds) || 0));
+    if (seconds === 0) return '0秒';
+    if (seconds < 60) return seconds + '秒';
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    if (s === 0) return m + '分';
+    return m + '分' + s + '秒';
   }
 
   function calcCurrentStreak() {
@@ -1740,6 +1786,7 @@ footer {
     }
     if (b.distance > 0) parts.push(b.distance.toFixed(1) + 'km');
     if (b.reps > 0) parts.push(b.reps + '个');
+    if (b.time > 0) parts.push(formatDuration(b.time));
     return parts.length > 0 ? parts.join('·') : '0';
   }
 
@@ -1916,6 +1963,17 @@ footer {
             bodyHtml += `<div class="day-tooltip-set"><span class="set-idx">${i + 1}</span><span class="set-val">${s.reps || 0} 个</span></div>`;
           });
         }
+      } else if (unit === 'time') {
+        const totalSets = ex.sets.reduce((s, x) => s + (Number(x.reps) || 0), 0);
+        const totalSeconds = ex.sets.reduce((s, x) => s + (Number(x.reps) || 0) * (Number(x.duration) || 0), 0);
+        if (ex.sets.length === 1) {
+          bodyHtml += `<div class="day-tooltip-set"><span class="set-idx">·</span><span class="set-val">${totalSets} 组 × ${formatDuration(Math.round(Number(ex.sets[0].duration) || 0))}</span></div>`;
+        } else {
+          bodyHtml += `<div class="day-tooltip-set"><span class="set-idx">${ex.sets.length}项</span><span class="set-val">合计 ${totalSets} 组 · ${formatDuration(totalSeconds)}</span></div>`;
+          ex.sets.forEach((s, i) => {
+            bodyHtml += `<div class="day-tooltip-set"><span class="set-idx">${i + 1}</span><span class="set-val">${s.reps || 0} 组 × ${formatDuration(Number(s.duration) || 0)}</span></div>`;
+          });
+        }
       } else {
         ex.sets.forEach((s, i) => {
           bodyHtml += `<div class="day-tooltip-set"><span class="set-idx">${i + 1}</span><span class="set-val">${s.reps || 0} 次 × ${formatNum(s.weight || 0)} kg</span></div>`;
@@ -2084,6 +2142,21 @@ footer {
           <button class="set-delete" data-action="delete-set" data-ex="${exIdx}" data-set="${setIdx}" aria-label="删除组">×</button>
         </div>`;
     }
+    if (unit === 'time') {
+      return `
+        <div class="set-row unit-time" data-ex="${exIdx}" data-set="${setIdx}">
+          <div class="set-num">${setIdx + 1}</div>
+          <div class="input-cell">
+            <input type="number" inputmode="numeric" min="0" placeholder="组数" value="${ex.sets[setIdx].reps ?? ''}" data-field="reps">
+            <span class="unit">组</span>
+          </div>
+          <div class="input-cell">
+            <input type="number" inputmode="numeric" min="0" step="5" placeholder="时长" value="${ex.sets[setIdx].duration ?? ''}" data-field="duration">
+            <span class="unit">秒</span>
+          </div>
+          <button class="set-delete" data-action="delete-set" data-ex="${exIdx}" data-set="${setIdx}" aria-label="删除组">×</button>
+        </div>`;
+    }
     return `
       <div class="set-row unit-weight" data-ex="${exIdx}" data-set="${setIdx}">
         <div class="set-num">${setIdx + 1}</div>
@@ -2101,7 +2174,7 @@ footer {
 
   function renderStats() {
     let trainingDays = 0;
-    const totals = { weight: 0, distance: 0, reps: 0 };
+    const totals = { weight: 0, distance: 0, reps: 0, time: 0 };
     const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
     for (let d = 1; d <= daysInMonth; d++) {
       const k = dateKey(viewYear, viewMonth, d);
@@ -2110,6 +2183,7 @@ footer {
       totals.weight += b.weight;
       totals.distance += b.distance;
       totals.reps += b.reps;
+      totals.time += b.time;
     }
 
     animateNumber(document.getElementById('stat-days'), trainingDays);
@@ -2137,6 +2211,7 @@ footer {
   function getDefaultSet(unit) {
     if (unit === 'distance') return { distance: 0 };
     if (unit === 'reps') return { reps: 0 };
+    if (unit === 'time') return { reps: 0, duration: 0 };
     return { reps: 0, weight: 0 };
   }
 
@@ -2149,6 +2224,7 @@ footer {
     let newSet;
     if (unit === 'distance') newSet = { distance: lastSet?.distance || 0 };
     else if (unit === 'reps') newSet = { reps: lastSet?.reps || 0 };
+    else if (unit === 'time') newSet = { reps: lastSet?.reps || 0, duration: lastSet?.duration || 0 };
     else newSet = { reps: lastSet?.reps || 0, weight: lastSet?.weight || 0 };
     data.days[selectedDate].push({ name, unit, sets: [newSet] });
     saveData();
@@ -2176,6 +2252,7 @@ footer {
     let ns;
     if (unit === 'distance') ns = { distance: last?.distance || 0 };
     else if (unit === 'reps') ns = { reps: last?.reps || 0 };
+    else if (unit === 'time') ns = { reps: last?.reps || 0, duration: last?.duration || 0 };
     else ns = { reps: last?.reps || 0, weight: last?.weight || 0 };
     ex.sets.push(ns);
     saveData();
@@ -2425,7 +2502,7 @@ footer {
               <div class="exercise-row-meta">
                 <span>${escapeHtml(ex.category)}</span>
                 <span>·</span>
-                <span class="meta-unit ${labels.cssClass}">${labels.tag}${u === 'weight' ? ' kg' : u === 'distance' ? ' km' : ''}</span>
+                <span class="meta-unit ${labels.cssClass}">${labels.tag}${u === 'weight' ? ' kg' : u === 'distance' ? ' km' : u === 'time' ? ' + 组数' : ''}</span>
               </div>
             </div>
             <button class="exercise-row-delete" data-action="delete-lib" data-name="${escapeHtml(ex.name)}">删除</button>
@@ -2467,6 +2544,7 @@ footer {
             <option value="weight">重量 (kg)</option>
             <option value="distance">距离 (km)</option>
             <option value="reps">次数</option>
+            <option value="time">时长 (秒) + 组数</option>
           </select>
         </div>
         <div class="form-actions">
@@ -2738,7 +2816,7 @@ footer {
       return `找不到仓库 ${REPO.owner}/${REPO.repo}，或 Token 无权访问。\n请确认仓库存在且 Token 所属账号对它有写权限。`;
     }
     if (err.status === 409) {
-      return '数据冲突，请稍后重试';
+      return '另一台设备正在同时改，正在重试';
     }
     return err.message || '连接失败';
   }
