@@ -1395,9 +1395,13 @@ footer {
 
   async function fetchRemoteMeta() {
     const { owner, repo, branch } = REPO;
-    const res = await gh(`/repos/${owner}/${repo}/contents/${DATA_FILE}?ref=${branch}`);
-    if (res.status === 404) return null;
-    return await res.json();
+    try {
+      const res = await gh(`/repos/${owner}/${repo}/contents/${DATA_FILE}?ref=${branch}`);
+      return await res.json();
+    } catch (err) {
+      if (err.status === 404) return null;
+      throw err;
+    }
   }
 
   async function pushRemote(content, sha) {
