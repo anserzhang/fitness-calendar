@@ -107,7 +107,7 @@
         "unit": "weight",
         "sets": [
           {
-            "reps": 0,
+            "reps": 10,
             "weight": 0
           }
         ]
