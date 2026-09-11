@@ -26,7 +26,27 @@
       "unit": "weight"
     },
     {
+      "name": "臀冲",
+      "category": "腿",
+      "unit": "weight"
+    },
+    {
+      "name": "髋外展",
+      "category": "腿",
+      "unit": "weight"
+    },
+    {
       "name": "单腿RDL",
+      "category": "腿",
+      "unit": "weight"
+    },
+    {
+      "name": "行走弓步",
+      "category": "腿",
+      "unit": "weight"
+    },
+    {
+      "name": "箱式深蹲",
       "category": "腿",
       "unit": "weight"
     },
@@ -51,6 +71,16 @@
       "unit": "weight"
     },
     {
+      "name": "早安式",
+      "category": "腿",
+      "unit": "weight"
+    },
+    {
+      "name": "哥萨克深蹲",
+      "category": "腿",
+      "unit": "weight"
+    },
+    {
       "name": "俯卧撑",
       "category": "推",
       "unit": "reps"
@@ -59,21 +89,6 @@
       "name": "慢跑",
       "category": "有氧",
       "unit": "distance"
-    },
-    {
-      "name": "侧抬腿",
-      "category": "腿",
-      "unit": "weight"
-    },
-    {
-      "name": "下犬式",
-      "category": "瑜伽",
-      "unit": "time"
-    },
-    {
-      "name": "弓步拉伸髂腰肌",
-      "category": "瑜伽",
-      "unit": "time"
     }
   ],
   "days": {
@@ -93,58 +108,6 @@
         "sets": [
           {
             "reps": 10,
-            "weight": 0
-          },
-          {
-            "reps": 10,
-            "weight": 0
-          }
-        ]
-      },
-      {
-        "name": "臀桥",
-        "unit": "weight",
-        "sets": [
-          {
-            "reps": 12,
-            "weight": 0
-          },
-          {
-            "reps": 12,
-            "weight": 0
-          },
-          {
-            "reps": 12,
-            "weight": 0
-          }
-        ]
-      },
-      {
-        "name": "弓步拉伸髂腰肌",
-        "unit": "time",
-        "sets": [
-          {
-            "reps": 2,
-            "duration": 30
-          }
-        ]
-      }
-    ],
-    "2026-09-11": [
-      {
-        "name": "侧抬腿",
-        "unit": "weight",
-        "sets": [
-          {
-            "reps": 12,
-            "weight": 0
-          },
-          {
-            "reps": 12,
-            "weight": 0
-          },
-          {
-            "reps": 12,
             "weight": 0
           }
         ]
