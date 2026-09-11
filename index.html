@@ -1472,6 +1472,21 @@ footer {
       try {
         const meta = await fetchRemoteMeta();
         const sha = meta ? meta.sha : null;
+        // 本地与远端完全一致（典型场景：add 后立刻 delete 把改动抵消了），
+        // GitHub Contents API 对"内容相同"的 PUT 会返回 422，没必要再推一次。
+        if (meta && meta.content) {
+          try {
+            const remoteJson = JSON.parse(b64decode(meta.content));
+            if (JSON.stringify(remoteJson, null, 2) === JSON.stringify(data, null, 2)) {
+              retryAttempt = 0;
+              lastSyncError = null;
+              setSyncState('idle');
+              return;
+            }
+          } catch (_) {
+            // 远端内容解析失败，按"内容不同"处理，继续尝试 push
+          }
+        }
         await pushRemote(data, sha);
         retryAttempt = 0;
         lastSyncError = null;
