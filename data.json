@@ -178,6 +178,16 @@
             "weight": 0
           }
         ]
+      },
+      {
+        "name": "弓步拉伸髂腰肌",
+        "unit": "time",
+        "sets": [
+          {
+            "reps": 12,
+            "duration": 0
+          }
+        ]
       }
     ]
   },
