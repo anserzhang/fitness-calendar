@@ -1,11 +1,6 @@
 {
   "exercises": [
     {
-      "name": "杠铃深蹲",
-      "category": "腿",
-      "unit": "weight"
-    },
-    {
       "name": "保加利亚蹲",
       "category": "腿",
       "unit": "weight"
@@ -17,16 +12,6 @@
     },
     {
       "name": "臀桥",
-      "category": "腿",
-      "unit": "weight"
-    },
-    {
-      "name": "单腿臀桥",
-      "category": "腿",
-      "unit": "weight"
-    },
-    {
-      "name": "单腿RDL",
       "category": "腿",
       "unit": "weight"
     },
@@ -54,51 +39,6 @@
       "name": "弓步拉伸髂腰肌",
       "category": "瑜伽",
       "unit": "time"
-    },
-    {
-      "name": "髋外展",
-      "category": "腿",
-      "unit": "weight"
-    },
-    {
-      "name": "臀冲",
-      "category": "腿",
-      "unit": "weight"
-    },
-    {
-      "name": "行走弓步",
-      "category": "腿",
-      "unit": "weight"
-    },
-    {
-      "name": "箱式深蹲",
-      "category": "腿",
-      "unit": "weight"
-    },
-    {
-      "name": "腿弯举",
-      "category": "腿",
-      "unit": "weight"
-    },
-    {
-      "name": "腿屈伸",
-      "category": "腿",
-      "unit": "weight"
-    },
-    {
-      "name": "提踵",
-      "category": "腿",
-      "unit": "weight"
-    },
-    {
-      "name": "早安式",
-      "category": "腿",
-      "unit": "weight"
-    },
-    {
-      "name": "哥萨克深蹲",
-      "category": "腿",
-      "unit": "weight"
     }
   ],
   "days": {
