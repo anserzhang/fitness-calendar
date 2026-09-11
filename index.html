@@ -2560,6 +2560,8 @@ footer {
       <div class="form-field">
         <label>${hasToken ? '更新 Token' : '粘贴新 Token'}</label>
         <input type="password" class="pat-input" id="pat-input" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off" spellcheck="false">
+        <button class="btn-ghost" id="pat-test" style="margin-top:8px;width:100%;font-size:12px;">🔍 测试 Token（不保存）</button>
+        <div id="pat-test-result" style="display:none;margin-top:10px;padding:10px 12px;border-radius:8px;font-size:12px;line-height:1.6;"></div>
       </div>
       <div id="pat-error" style="color:var(--training);font-size:12px;margin-bottom:12px;display:none;white-space:pre-line;"></div>
       <div class="form-actions">
@@ -2586,6 +2588,7 @@ footer {
 
     body.querySelector('#pat-cancel').addEventListener('click', closeSettingsModal);
     body.querySelector('#pat-save').addEventListener('click', onSaveToken);
+    body.querySelector('#pat-test').addEventListener('click', onTestToken);
     body.querySelector('#pat-input').addEventListener('keydown', e => {
       if (e.key === 'Enter') onSaveToken();
     });
@@ -2593,6 +2596,67 @@ footer {
     if (clearBtn) clearBtn.addEventListener('click', onClearToken);
     const retryBtn = body.querySelector('#pat-retry');
     if (retryBtn) retryBtn.addEventListener('click', onManualRetry);
+  }
+
+  async function onTestToken() {
+    const input = document.getElementById('pat-input');
+    const resultEl = document.getElementById('pat-test-result');
+    const testBtn = document.getElementById('pat-test');
+    const token = input.value.trim();
+    resultEl.style.display = 'none';
+    if (!token) {
+      resultEl.style.display = 'block';
+      resultEl.style.background = 'var(--danger)';
+      resultEl.innerHTML = '<b style="color:var(--training)">请先粘贴 Token</b>';
+      return;
+    }
+    testBtn.disabled = true;
+    testBtn.textContent = '测试中...';
+    const prevToken = authToken;
+    authToken = token;
+    resultEl.style.display = 'block';
+    resultEl.style.background = 'var(--card)';
+    resultEl.innerHTML = '正在调用 GitHub API...';
+    try {
+      const user = await validateToken();
+      let repoStatus = '';
+      try {
+        await checkRepoAccess();
+        repoStatus = `<div style="margin-top:6px;color:var(--cardio);">✓ 仓库访问正常</div>`;
+      } catch (repoErr) {
+        if (repoErr.status === 404) {
+          repoStatus = `<div style="margin-top:6px;color:var(--training);">✗ Token 看不到仓库 <code>${escapeHtml(REPO.owner)}/${escapeHtml(REPO.repo)}</code></div>`;
+        } else if (repoErr.status === 403) {
+          repoStatus = `<div style="margin-top:6px;color:var(--training);">✗ Token 没有仓库写权限</div>`;
+        } else {
+          repoStatus = `<div style="margin-top:6px;color:var(--training);">✗ 仓库访问失败：${escapeHtml(repoErr.message)}</div>`;
+        }
+      }
+      const isOwner = user.login.toLowerCase() === REPO.owner.toLowerCase();
+      resultEl.innerHTML = `
+        <div><b style="color:var(--cardio)">✓ Token 有效</b></div>
+        <div style="margin-top:6px;">Token 属于：<b style="color:var(--primary)">@${escapeHtml(user.login)}</b>${isOwner ? '（仓库所有者）' : ''}</div>
+        ${repoStatus}
+        ${!isOwner && repoStatus.includes('✗') ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--text-dim);">
+          需要让 <b style="color:var(--text)">@${escapeHtml(REPO.owner)}</b> 这个账号有写权限：<br>
+          · 你登的就是 <b style="color:var(--text)">@${escapeHtml(REPO.owner)}</b> → 重新生成 PAT 后再试<br>
+          · 登的是别的账号 → 让 owner 在仓库 Settings → Collaborators 加你
+        </div>` : ''}
+      `;
+    } catch (err) {
+      resultEl.style.background = 'var(--danger)';
+      if (err.status === 401) {
+        resultEl.innerHTML = `<b style="color:var(--training)">✗ Token 无效或已过期</b><div style="margin-top:6px;font-size:11px;">请检查复制是否完整、是否已撤销</div>`;
+      } else if (err.status === 0) {
+        resultEl.innerHTML = `<b style="color:var(--training)">✗ 网络错误</b><div style="margin-top:6px;font-size:11px;">无法连接到 GitHub API</div>`;
+      } else {
+        resultEl.innerHTML = `<b style="color:var(--training)">✗ ${escapeHtml(err.message)}</b>`;
+      }
+    } finally {
+      authToken = prevToken;
+      testBtn.disabled = false;
+      testBtn.textContent = '🔍 测试 Token（不保存）';
+    }
   }
 
   async function onManualRetry() {
