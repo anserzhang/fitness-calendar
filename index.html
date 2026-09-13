@@ -24,6 +24,10 @@
   --text-faint: #5C6678;
   --border: rgba(255, 255, 255, 0.08);
   --danger: rgba(255, 107, 53, 0.2);
+  --muscle-base: #60A5FA;
+  --muscle-active: #FF6B35;
+  --muscle-stroke: rgba(255, 255, 255, 0.18);
+  --muscle-silhouette: rgba(255, 255, 255, 0.04);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -116,10 +120,102 @@ header {
 
 main {
   display: grid;
-  grid-template-columns: 1fr 380px;
+  grid-template-columns: 240px 1fr 380px;
   gap: 16px;
   flex: 1;
   min-height: 0;
+}
+
+/* Muscle model panel */
+.muscle-panel {
+  background: var(--card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.muscle-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text-dim);
+  font-weight: 500;
+}
+
+.muscle-panel-date { color: var(--text); }
+
+.view-toggle {
+  display: flex;
+  background: var(--card-strong);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+}
+.view-toggle button {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  font-family: inherit;
+  font-weight: 500;
+  transition: all 200ms;
+}
+.view-toggle button.active {
+  background: var(--primary-dim);
+  color: var(--primary);
+}
+
+.muscle-svg-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 4px 0;
+}
+
+.muscle-view {
+  width: 100%;
+  max-height: 100%;
+  height: auto;
+  display: block;
+}
+.muscle-view.back { display: none; }
+.muscle-view.back.is-active { display: block; }
+.muscle-view.front.is-active { display: block; }
+
+.body-outline {
+  fill: var(--muscle-silhouette);
+  stroke: var(--muscle-stroke);
+  stroke-width: 1;
+}
+
+.muscle-region {
+  fill: var(--muscle-base);
+  stroke: var(--muscle-stroke);
+  stroke-width: 0.6;
+  transition: fill 280ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.muscle-region.active { fill: var(--muscle-active); }
+
+@media (prefers-reduced-motion: reduce) {
+  .muscle-region { transition: none; }
+}
+
+@media (max-width: 1024px) {
+  main { grid-template-columns: 1fr 380px; }
+  .muscle-panel { display: none; }
 }
 
 .calendar-container {
@@ -1209,6 +1305,94 @@ footer {
   </header>
 
   <main>
+    <aside class="muscle-panel" id="muscle-panel">
+      <div class="muscle-panel-header">
+        <span class="muscle-panel-date" id="muscle-panel-date">今天</span>
+        <div class="view-toggle" id="muscle-view-toggle">
+          <button type="button" data-view="front" class="active">正面</button>
+          <button type="button" data-view="back">背面</button>
+        </div>
+      </div>
+      <div class="muscle-svg-wrap">
+        <!-- 正面 -->
+        <svg viewBox="0 0 120 320" class="muscle-view front is-active" aria-label="人体肌肉模型 正面">
+          <!-- 身体轮廓 (头 + 躯干) -->
+          <ellipse class="body-outline" cx="60" cy="18" rx="11" ry="13"/>
+          <path class="body-outline" d="M52 30 L68 30 L66 40 L54 40 Z"/>
+          <!-- 躯干主干 -->
+          <path class="body-outline" d="M30 44 Q60 40 90 44 L92 130 Q60 138 28 130 Z"/>
+          <!-- 左臂轮廓 -->
+          <path class="body-outline" d="M28 46 Q22 50 22 70 Q20 95 26 110 L32 110 Q30 95 32 76 Q34 56 36 50 Z"/>
+          <!-- 右臂轮廓 -->
+          <path class="body-outline" d="M92 46 Q98 50 98 70 Q100 95 94 110 L88 110 Q90 95 88 76 Q86 56 84 50 Z"/>
+          <!-- 左腿轮廓 -->
+          <path class="body-outline" d="M30 130 Q28 165 38 200 Q42 230 46 260 L54 260 Q52 230 52 200 Q56 165 56 132 Z"/>
+          <!-- 右腿轮廓 -->
+          <path class="body-outline" d="M90 130 Q92 165 82 200 Q78 230 74 260 L66 260 Q68 230 68 200 Q64 165 64 132 Z"/>
+
+          <!-- 肌肉区域 -->
+          <!-- 肩 (三角肌前束) -->
+          <path class="muscle-region" data-region="shoulders-front"
+                d="M30 44 Q40 42 50 46 L48 56 Q40 54 32 56 Z M90 44 Q80 42 70 46 L72 56 Q80 54 88 56 Z"/>
+          <!-- 胸 -->
+          <path class="muscle-region" data-region="chest"
+                d="M40 50 Q60 46 80 50 Q78 70 60 72 Q42 70 40 50 Z"/>
+          <!-- 肱二头肌 -->
+          <path class="muscle-region" data-region="biceps"
+                d="M24 56 Q22 65 24 80 Q26 88 32 86 Q34 80 32 70 Q34 60 32 54 Z M96 56 Q98 65 96 80 Q94 88 88 86 Q86 80 88 70 Q86 60 88 54 Z"/>
+          <!-- 腹肌 -->
+          <path class="muscle-region" data-region="abs"
+                d="M48 76 L72 76 L74 122 L46 122 Z"/>
+          <!-- 髋屈肌 -->
+          <path class="muscle-region" data-region="hip-flexors"
+                d="M38 122 L52 122 L52 134 L40 132 Z M82 122 L68 122 L68 134 L80 132 Z"/>
+          <!-- 股四头 -->
+          <path class="muscle-region" data-region="quads"
+                d="M32 138 Q30 165 38 198 Q46 200 52 198 Q56 165 54 138 Z M88 138 Q90 165 82 198 Q74 200 68 198 Q64 165 66 138 Z"/>
+          <!-- 小腿前 -->
+          <path class="muscle-region" data-region="calves-front"
+                d="M40 208 Q38 230 44 256 L52 256 Q52 230 50 208 Z M80 208 Q82 230 76 256 L68 256 Q68 230 70 208 Z"/>
+        </svg>
+
+        <!-- 背面 -->
+        <svg viewBox="0 0 120 320" class="muscle-view back" aria-label="人体肌肉模型 背面">
+          <!-- 身体轮廓 -->
+          <ellipse class="body-outline" cx="60" cy="18" rx="11" ry="13"/>
+          <path class="body-outline" d="M52 30 L68 30 L66 40 L54 40 Z"/>
+          <path class="body-outline" d="M30 44 Q60 40 90 44 L92 130 Q60 138 28 130 Z"/>
+          <path class="body-outline" d="M28 46 Q22 50 22 70 Q20 95 26 110 L32 110 Q30 95 32 76 Q34 56 36 50 Z"/>
+          <path class="body-outline" d="M92 46 Q98 50 98 70 Q100 95 94 110 L88 110 Q90 95 88 76 Q86 56 84 50 Z"/>
+          <path class="body-outline" d="M30 130 Q28 165 38 200 Q42 230 46 260 L54 260 Q52 230 52 200 Q56 165 56 132 Z"/>
+          <path class="body-outline" d="M90 130 Q92 165 82 200 Q78 230 74 260 L66 260 Q68 230 68 200 Q64 165 64 132 Z"/>
+
+          <!-- 斜方肌 -->
+          <path class="muscle-region" data-region="traps"
+                d="M40 40 Q60 38 80 40 L74 60 Q60 56 46 60 Z"/>
+          <!-- 三角肌后束 -->
+          <path class="muscle-region" data-region="rear-deltoids"
+                d="M30 46 Q38 50 44 60 L42 70 Q34 64 30 56 Z M90 46 Q82 50 76 60 L78 70 Q86 64 90 56 Z"/>
+          <!-- 肱三头肌 -->
+          <path class="muscle-region" data-region="triceps"
+                d="M24 60 Q22 72 24 88 Q28 94 32 92 Q34 80 32 70 Q34 60 30 56 Z M96 60 Q98 72 96 88 Q92 94 88 92 Q86 80 88 70 Q86 60 90 56 Z"/>
+          <!-- 背阔肌 (V 型) -->
+          <path class="muscle-region" data-region="lats"
+                d="M40 64 Q44 84 50 110 L70 110 Q76 84 80 64 Q60 70 40 64 Z"/>
+          <!-- 下背 -->
+          <path class="muscle-region" data-region="lower-back"
+                d="M48 112 L72 112 L74 130 Q60 134 46 130 Z"/>
+          <!-- 臀大肌 -->
+          <path class="muscle-region" data-region="glutes"
+                d="M30 130 Q34 158 50 162 Q60 158 60 138 Q60 158 70 162 Q86 158 90 130 Q60 134 30 130 Z"/>
+          <!-- 腘绳肌 (大腿后侧) -->
+          <path class="muscle-region" data-region="hamstrings"
+                d="M34 162 Q32 180 38 198 Q46 200 52 198 Q54 180 52 162 Z M86 162 Q88 180 82 198 Q74 200 68 198 Q66 180 68 162 Z"/>
+          <!-- 小腿后 -->
+          <path class="muscle-region" data-region="calves-back"
+                d="M40 208 Q36 232 42 256 Q48 258 52 256 Q52 232 50 208 Z M80 208 Q84 232 78 256 Q72 258 68 256 Q68 232 70 208 Z"/>
+        </svg>
+      </div>
+    </aside>
+
     <div class="calendar-container">
       <div class="weekday-row">
         <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
@@ -1322,6 +1506,39 @@ footer {
     distance: { tag: '距离', input: '距离', suffix: 'km', cssClass: 'distance' },
     reps: { tag: '次数', input: '次数', suffix: '个', cssClass: 'reps' },
     time: { tag: '时长', input: '时长', suffix: '秒', cssClass: 'time' }
+  };
+
+  // 动作 → 肌肉区域映射 (data-region 属性值)
+  const MUSCLE_MAP = {
+    // 蹲类 → 股四头 + 臀
+    '杠铃深蹲':     ['quads', 'glutes'],
+    '箱式深蹲':     ['quads', 'glutes'],
+    '保加利亚蹲':   ['quads', 'glutes'],
+    '箭步蹲':       ['quads', 'glutes'],
+    '行走弓步':     ['quads', 'glutes'],
+    '哥萨克深蹲':   ['quads', 'hip-flexors', 'glutes'],
+    // 髋铰链 → 腘绳 + 臀 + 下背
+    '罗马尼亚硬拉': ['hamstrings', 'glutes', 'lower-back'],
+    '单腿RDL':      ['hamstrings', 'glutes', 'lower-back'],
+    '早安式':       ['hamstrings', 'glutes', 'lower-back'],
+    // 臀桥类 → 臀 + 腘绳
+    '臀桥':         ['glutes', 'hamstrings'],
+    '单腿臀桥':     ['glutes', 'hamstrings'],
+    '臀冲':         ['glutes', 'hamstrings'],
+    // 髋外展 / 侧抬 → 髋屈肌 + 臀
+    '侧抬腿':       ['hip-flexors', 'glutes'],
+    '髋外展':       ['hip-flexors', 'glutes'],
+    // 腿部孤立
+    '腿弯举':       ['hamstrings'],
+    '腿屈伸':       ['quads'],
+    '提踵':         ['calves-front', 'calves-back'],
+    // 推
+    '俯卧撑':       ['chest', 'triceps', 'shoulders-front'],
+    // 有氧
+    '慢跑':         ['quads', 'calves-front', 'calves-back'],
+    // 瑜伽
+    '下犬式':       ['hamstrings', 'calves-back', 'shoulders-front'],
+    '弓步拉伸髂腰肌': ['hip-flexors', 'quads']
   };
 
   const CATEGORY_ORDER = ['腿', '推', '拉', '核心', '有氧', '瑜伽', '其他'];
@@ -1828,11 +2045,46 @@ footer {
     return window.innerWidth <= 768;
   }
 
+  // ---------- muscle model ----------
+  let muscleView = 'front';
+
+  function getActiveMuscleRegions() {
+    const key = selectedDate || todayKey();
+    const day = data.days[key] || [];
+    const set = new Set();
+    for (const ex of day) {
+      const regions = MUSCLE_MAP[ex.name];
+      if (regions) regions.forEach(r => set.add(r));
+    }
+    return { set, key };
+  }
+
+  function renderMuscleModel() {
+    const { set, key } = getActiveMuscleRegions();
+    document.querySelectorAll('.muscle-region').forEach(p => {
+      p.classList.toggle('active', set.has(p.dataset.region));
+    });
+    const dateObj = parseKey(key);
+    const todayK = todayKey();
+    const label = key === todayK
+      ? `今天 · ${dateObj.getMonth() + 1}/${dateObj.getDate()}`
+      : `${dateObj.getMonth() + 1}/${dateObj.getDate()} 周${['日','一','二','三','四','五','六'][dateObj.getDay()]}`;
+    const dateEl = document.getElementById('muscle-panel-date');
+    if (dateEl) dateEl.textContent = label;
+    document.querySelectorAll('.muscle-view').forEach(svg => {
+      svg.classList.toggle('is-active', svg.classList.contains(muscleView));
+    });
+    document.querySelectorAll('#muscle-view-toggle button').forEach(b => {
+      b.classList.toggle('active', b.dataset.view === muscleView);
+    });
+  }
+
   // ---------- render ----------
   function renderAll() {
     renderCalendar();
     renderDrawer();
     renderStats();
+    renderMuscleModel();
   }
 
   function renderCalendar() {
@@ -2215,6 +2467,7 @@ footer {
     selectedDate = key;
     renderDrawer();
     applySelectedState();
+    renderMuscleModel();
   }
   function closeDrawer() {
     selectedDate = null;
@@ -2224,6 +2477,7 @@ footer {
       if (!selectedDate) renderDrawer();
     }, 280);
     applySelectedState();
+    renderMuscleModel();
   }
 
   function getDefaultSet(unit) {
@@ -2249,6 +2503,7 @@ footer {
     renderDrawer();
     renderCalendar();
     renderStats();
+    renderMuscleModel();
   }
 
   function deleteExercise(exIdx) {
@@ -2259,6 +2514,7 @@ footer {
     renderDrawer();
     renderCalendar();
     renderStats();
+    renderMuscleModel();
   }
 
   function addSet(exIdx) {
@@ -2277,6 +2533,7 @@ footer {
     renderDrawer();
     renderCalendar();
     renderStats();
+    renderMuscleModel();
   }
 
   function deleteSet(exIdx, setIdx) {
@@ -2290,6 +2547,7 @@ footer {
     renderDrawer();
     renderCalendar();
     renderStats();
+    renderMuscleModel();
   }
 
   function updateSet(e) {
@@ -2306,6 +2564,7 @@ footer {
     saveData();
     renderCalendar();
     renderStats();
+    renderMuscleModel();
   }
 
   function onAddExerciseSelect(e) {
@@ -2325,6 +2584,7 @@ footer {
     renderDrawer();
     renderCalendar();
     renderStats();
+    renderMuscleModel();
   }
 
   // ---------- box selection ----------
@@ -2913,6 +3173,7 @@ footer {
       renderCalendar();
       renderDrawer();
       renderStats();
+      renderMuscleModel();
     });
 
     document.getElementById('manage-exercises-btn').addEventListener('click', openManageModal);
@@ -2932,6 +3193,13 @@ footer {
     });
 
     document.getElementById('settings-btn').addEventListener('click', openSettingsModal);
+
+    document.querySelectorAll('#muscle-view-toggle button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        muscleView = btn.dataset.view;
+        renderMuscleModel();
+      });
+    });
     document.getElementById('settings-modal-close').addEventListener('click', closeSettingsModal);
     document.getElementById('settings-modal-backdrop').addEventListener('click', e => {
       if (e.target.id === 'settings-modal-backdrop') closeSettingsModal();
