@@ -1,11 +1,6 @@
 {
   "exercises": [
     {
-      "name": "杠铃深蹲",
-      "category": "腿",
-      "unit": "weight"
-    },
-    {
       "name": "保加利亚蹲",
       "category": "腿",
       "unit": "weight"
@@ -17,21 +12,6 @@
     },
     {
       "name": "臀桥",
-      "category": "腿",
-      "unit": "weight"
-    },
-    {
-      "name": "单腿臀桥",
-      "category": "腿",
-      "unit": "weight"
-    },
-    {
-      "name": "单腿RDL",
-      "category": "腿",
-      "unit": "weight"
-    },
-    {
-      "name": "箭步蹲",
       "category": "腿",
       "unit": "weight"
     },
@@ -61,47 +41,7 @@
       "unit": "time"
     },
     {
-      "name": "髋外展",
-      "category": "腿",
-      "unit": "weight"
-    },
-    {
-      "name": "臀冲",
-      "category": "腿",
-      "unit": "weight"
-    },
-    {
-      "name": "行走弓步",
-      "category": "腿",
-      "unit": "weight"
-    },
-    {
-      "name": "箱式深蹲",
-      "category": "腿",
-      "unit": "weight"
-    },
-    {
-      "name": "腿弯举",
-      "category": "腿",
-      "unit": "weight"
-    },
-    {
-      "name": "腿屈伸",
-      "category": "腿",
-      "unit": "weight"
-    },
-    {
-      "name": "提踵",
-      "category": "腿",
-      "unit": "weight"
-    },
-    {
-      "name": "早安式",
-      "category": "腿",
-      "unit": "weight"
-    },
-    {
-      "name": "哥萨克深蹲",
+      "name": "前抬腿",
       "category": "腿",
       "unit": "weight"
     }
@@ -186,6 +126,66 @@
           {
             "reps": 2,
             "duration": 60
+          }
+        ]
+      }
+    ],
+    "2026-09-13": [
+      {
+        "name": "臀桥",
+        "unit": "weight",
+        "sets": [
+          {
+            "reps": 12,
+            "weight": 0
+          },
+          {
+            "reps": 12,
+            "weight": 0
+          },
+          {
+            "reps": 12,
+            "weight": 0
+          }
+        ]
+      },
+      {
+        "name": "侧抬腿",
+        "unit": "weight",
+        "sets": [
+          {
+            "reps": 12,
+            "weight": 0
+          },
+          {
+            "reps": 12,
+            "weight": 0
+          },
+          {
+            "reps": 12,
+            "weight": 0
+          },
+          {
+            "reps": 12,
+            "weight": 0
+          }
+        ]
+      },
+      {
+        "name": "前抬腿",
+        "unit": "weight",
+        "sets": [
+          {
+            "reps": 12,
+            "weight": 0
+          },
+          {
+            "reps": 12,
+            "weight": 0
+          },
+          {
+            "reps": 12,
+            "weight": 0
           }
         ]
       }
