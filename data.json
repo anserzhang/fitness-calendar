@@ -39,6 +39,11 @@
       "name": "弓步拉伸髂腰肌",
       "category": "瑜伽",
       "unit": "time"
+    },
+    {
+      "name": "前抬腿",
+      "category": "腿",
+      "unit": "weight"
     }
   ],
   "days": {
@@ -152,6 +157,24 @@
             "reps": 12,
             "weight": 0
           },
+          {
+            "reps": 12,
+            "weight": 0
+          },
+          {
+            "reps": 12,
+            "weight": 0
+          },
+          {
+            "reps": 12,
+            "weight": 0
+          }
+        ]
+      },
+      {
+        "name": "前抬腿",
+        "unit": "weight",
+        "sets": [
           {
             "reps": 12,
             "weight": 0
