@@ -131,7 +131,37 @@
         "unit": "weight",
         "sets": [
           {
-            "reps": 0,
+            "reps": 12,
+            "weight": 0
+          },
+          {
+            "reps": 12,
+            "weight": 0
+          },
+          {
+            "reps": 12,
+            "weight": 0
+          }
+        ]
+      },
+      {
+        "name": "侧抬腿",
+        "unit": "weight",
+        "sets": [
+          {
+            "reps": 12,
+            "weight": 0
+          },
+          {
+            "reps": 12,
+            "weight": 0
+          },
+          {
+            "reps": 12,
+            "weight": 0
+          },
+          {
+            "reps": 12,
             "weight": 0
           }
         ]
