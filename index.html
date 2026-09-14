@@ -209,6 +209,64 @@ main {
 }
 .muscle-region.active { fill: var(--muscle-active); }
 
+/* 动作肌肉标注列表 (SVG 下方) */
+.muscle-exercises {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 2px 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.muscle-exercises::-webkit-scrollbar { width: 4px; }
+.muscle-exercises::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.muscle-ex-item {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: opacity 180ms, border-color 180ms, background 180ms;
+}
+.muscle-ex-item:hover { border-color: var(--primary); }
+.muscle-ex-item.selected {
+  border-color: var(--muscle-active);
+  background: rgba(255, 107, 53, 0.10);
+}
+.muscle-ex-item.dimmed { opacity: 0.4; }
+.muscle-ex-item.dimmed:hover { opacity: 0.7; }
+.muscle-ex-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 5px;
+}
+.muscle-ex-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.muscle-ex-tag {
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: var(--muscle-base);
+  color: rgba(10, 14, 26, 0.85);
+  font-weight: 500;
+}
+.muscle-ex-tag.unmapped {
+  background: var(--card-strong);
+  color: var(--text-dim);
+}
+.muscle-ex-empty {
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 12px;
+  padding: 20px 8px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .muscle-region { transition: none; }
 }
@@ -1410,6 +1468,7 @@ footer {
           </g>
         </svg>
       </div>
+      <div class="muscle-exercises" id="muscle-exercises"></div>
     </aside>
 
     <div class="calendar-container">
@@ -1563,6 +1622,30 @@ footer {
   };
 
   const CATEGORY_ORDER = ['腿', '推', '拉', '核心', '有氧', '瑜伽', '其他'];
+
+  // region (英文, 与 SVG data-region 一致) → 中文肌肉名
+  const REGION_LABELS = {
+    'quads':                      '股四头肌',
+    'glutes':                     '臀大肌',
+    'hamstrings':                 '腘绳肌',
+    'calves':                     '小腿',
+    'pecs':                       '胸大肌',
+    'lats':                       '背阔肌',
+    'traps':                      '斜方肌',
+    'abs':                        '腹直肌',
+    'obliques':                   '腹斜肌',
+    'lower-back':                 '竖脊肌',
+    'neck':                       '颈部',
+    'front-side-delts':           '三角肌前中束',
+    'rear-delts':                 '三角肌后束',
+    'biceps':                     '肱二头肌',
+    'triceps':                    '肱三头肌',
+    'forearms-top':               '前臂伸肌',
+    'forearms-underside':         '前臂屈肌',
+    'adductors-abductors-front':  '髋屈/内收肌',
+    'adductors-back':             '大腿内收肌',
+    'abductors-back':             '臀中/小肌'
+  };
 
   // ---------- sync (GitHub-backed cross-device sync) ----------
   const TOKEN_KEY = 'fitness-calendar-token';
@@ -2068,6 +2151,8 @@ footer {
 
   // ---------- muscle model ----------
   let muscleView = 'front';
+  // null = 总体模式 (当天所有动作的肌肉并集); string = 单动作模式 (只显示该动作的肌肉)
+  let selectedExerciseName = null;
 
   function getActiveMuscleRegions() {
     const key = selectedDate || todayKey();
@@ -2075,9 +2160,13 @@ footer {
     const set = new Set();
     for (const ex of day) {
       const regions = MUSCLE_MAP[ex.name];
-      if (regions) regions.forEach(r => set.add(r));
+      if (!regions) continue;
+      // 总体模式: 所有动作并集; 单动作模式: 只取选中的那个
+      if (selectedExerciseName === null || selectedExerciseName === ex.name) {
+        regions.forEach(r => set.add(r));
+      }
     }
-    return { set, key };
+    return { set, key, day };
   }
 
   function renderMuscleModel() {
@@ -2098,6 +2187,58 @@ footer {
     document.querySelectorAll('#muscle-view-toggle button').forEach(b => {
       b.classList.toggle('active', b.dataset.view === muscleView);
     });
+    renderMuscleExerciseList();
+  }
+
+  // 渲染 SVG 下方每个动作的肌肉标注卡片
+  function renderMuscleExerciseList() {
+    const container = document.getElementById('muscle-exercises');
+    if (!container) return;
+    const { day } = getActiveMuscleRegions();
+
+    // 切换日期后, 选中的动作若不在当前日, 重置为总体模式
+    if (selectedExerciseName && !day.some(ex => ex.name === selectedExerciseName)) {
+      selectedExerciseName = null;
+    }
+
+    if (day.length === 0) {
+      container.innerHTML = '<div class="muscle-ex-empty">当日无训练</div>';
+      return;
+    }
+
+    container.innerHTML = day.map((ex) => {
+      const regions = MUSCLE_MAP[ex.name] || [];
+      const isSelected = selectedExerciseName === ex.name;
+      const isDimmed = selectedExerciseName !== null && !isSelected;
+      const cls = ['muscle-ex-item'];
+      if (isSelected) cls.push('selected');
+      if (isDimmed) cls.push('dimmed');
+
+      let tagsHtml;
+      if (regions.length === 0) {
+        tagsHtml = '<span class="muscle-ex-tag unmapped">未映射肌肉</span>';
+      } else {
+        tagsHtml = regions.map(r => {
+          const label = REGION_LABELS[r] || r;
+          return `<span class="muscle-ex-tag">${escapeHtml(label)}</span>`;
+        }).join('');
+      }
+
+      return `<div class="${cls.join(' ')}" data-name="${escapeHtml(ex.name)}">
+        <div class="muscle-ex-name">${escapeHtml(ex.name)}</div>
+        <div class="muscle-ex-tags">${tagsHtml}</div>
+      </div>`;
+    }).join('');
+
+    // 绑定点击事件
+    container.querySelectorAll('.muscle-ex-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const name = el.dataset.name;
+        // toggle: 同一动作再点 = 取消选中 (回总体)
+        selectedExerciseName = (selectedExerciseName === name) ? null : name;
+        renderMuscleModel(); // 内部会顺带调用 renderMuscleExerciseList
+      });
+    });
   }
 
   // ---------- render ----------
@@ -2106,6 +2247,7 @@ footer {
     renderDrawer();
     renderStats();
     renderMuscleModel();
+    renderMuscleExerciseList();
   }
 
   function renderCalendar() {
