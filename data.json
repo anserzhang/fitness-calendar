@@ -44,6 +44,11 @@
       "name": "前抬腿",
       "category": "腿",
       "unit": "weight"
+    },
+    {
+      "name": "单腿臀桥",
+      "category": "腿",
+      "unit": "weight"
     }
   ],
   "days": {
@@ -234,7 +239,29 @@
         "unit": "weight",
         "sets": [
           {
-            "reps": 0,
+            "reps": 12,
+            "weight": 0
+          },
+          {
+            "reps": 12,
+            "weight": 0
+          },
+          {
+            "reps": 12,
+            "weight": 0
+          }
+        ]
+      },
+      {
+        "name": "单腿臀桥",
+        "unit": "weight",
+        "sets": [
+          {
+            "reps": 8,
+            "weight": 0
+          },
+          {
+            "reps": 8,
             "weight": 0
           }
         ]
