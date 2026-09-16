@@ -287,6 +287,16 @@
             "duration": 60
           }
         ]
+      },
+      {
+        "name": "罗马尼亚硬拉",
+        "unit": "weight",
+        "sets": [
+          {
+            "reps": 1,
+            "weight": 0
+          }
+        ]
       }
     ]
   },
