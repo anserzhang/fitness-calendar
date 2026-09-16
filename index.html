@@ -2242,6 +2242,21 @@ footer {
   }
 
   // ---------- render ----------
+
+  // 日历单元格排序：有氧 → 瑜伽 → 力量训练 → 其他；同组内按名称字数升序
+  const STRENGTH_CATEGORIES = new Set(['腿', '推', '拉', '核心']);
+  function categoryGroupRank(name) {
+    const cat = (data.exercises.find(e => e.name === name) || {}).category || '其他';
+    if (cat === '有氧') return 0;
+    if (cat === '瑜伽') return 1;
+    if (STRENGTH_CATEGORIES.has(cat)) return 2;
+    return 3;
+  }
+  function compareForCalendar(a, b) {
+    const diff = categoryGroupRank(a.name) - categoryGroupRank(b.name);
+    return diff !== 0 ? diff : a.name.length - b.name.length;
+  }
+
   function renderAll() {
     renderCalendar();
     renderDrawer();
@@ -2306,7 +2321,7 @@ footer {
       if (trained) {
         const lines = document.createElement('div');
         lines.className = 'day-lines';
-        const summaries = dayData.map(ex => {
+        const summaries = dayData.slice().sort(compareForCalendar).map(ex => {
           const unit = ex.unit || getExerciseUnit(ex.name);
           return { text: formatExerciseSummary(ex, unit), unit };
         }).filter(s => s.text);
