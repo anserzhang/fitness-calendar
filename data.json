@@ -275,6 +275,15 @@
             "duration": 60
           }
         ]
+      },
+      {
+        "name": "慢跑",
+        "unit": "distance",
+        "sets": [
+          {
+            "distance": 0
+          }
+        ]
       }
     ],
     "2026-09-16": [
