@@ -2382,7 +2382,7 @@ footer {
     const weekday = ['日', '一', '二', '三', '四', '五', '六'][dateObj.getDay()];
 
     let bodyHtml = '<div class="day-tooltip-body">';
-    for (const ex of dayData) {
+    for (const ex of dayData.slice().sort(compareForCalendar)) {
       const unit = ex.unit || getExerciseUnit(ex.name);
       const tag = UNIT_LABELS[unit].tag;
       bodyHtml += `<div class="day-tooltip-exercise ${unit}">
