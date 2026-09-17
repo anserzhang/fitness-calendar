@@ -326,6 +326,16 @@
             "duration": 60
           }
         ]
+      },
+      {
+        "name": "臀桥",
+        "unit": "weight",
+        "sets": [
+          {
+            "reps": 2,
+            "weight": 0
+          }
+        ]
       }
     ]
   },
