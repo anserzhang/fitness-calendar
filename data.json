@@ -332,7 +332,29 @@
         "unit": "weight",
         "sets": [
           {
-            "reps": 2,
+            "reps": 12,
+            "weight": 0
+          },
+          {
+            "reps": 12,
+            "weight": 0
+          },
+          {
+            "reps": 12,
+            "weight": 0
+          }
+        ]
+      },
+      {
+        "name": "单腿臀桥",
+        "unit": "weight",
+        "sets": [
+          {
+            "reps": 8,
+            "weight": 0
+          },
+          {
+            "reps": 8,
             "weight": 0
           }
         ]
