@@ -403,6 +403,32 @@
           }
         ]
       }
+    ],
+    "2026-09-20": [
+      {
+        "name": "弓步拉伸腘绳肌",
+        "unit": "time",
+        "sets": [
+          {
+            "reps": 1,
+            "duration": 60
+          },
+          {
+            "reps": 1,
+            "duration": 60
+          }
+        ]
+      },
+      {
+        "name": "罗马尼亚硬拉",
+        "unit": "weight",
+        "sets": [
+          {
+            "reps": 12,
+            "weight": 30
+          }
+        ]
+      }
     ]
   },
   "meta": {
