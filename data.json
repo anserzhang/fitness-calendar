@@ -49,6 +49,16 @@
       "name": "单腿臀桥",
       "category": "腿",
       "unit": "weight"
+    },
+    {
+      "name": "弓步拉伸腘绳肌",
+      "category": "瑜伽",
+      "unit": "time"
+    },
+    {
+      "name": "泡沫轴放松大腿前侧",
+      "category": "瑜伽",
+      "unit": "time"
     }
   ],
   "days": {
@@ -385,6 +395,18 @@
     "2026-09-19": [
       {
         "name": "弓步拉伸髂腰肌",
+        "unit": "time",
+        "sets": [
+          {
+            "reps": 1,
+            "duration": 60
+          }
+        ]
+      }
+    ],
+    "2026-09-20": [
+      {
+        "name": "弓步拉伸腘绳肌",
         "unit": "time",
         "sets": [
           {
