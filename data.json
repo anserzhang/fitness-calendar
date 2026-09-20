@@ -412,6 +412,10 @@
           {
             "reps": 1,
             "duration": 60
+          },
+          {
+            "reps": 1,
+            "duration": 60
           }
         ]
       }
