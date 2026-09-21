@@ -450,16 +450,12 @@
         ]
       },
       {
-        "name": "罗马尼亚硬拉",
-        "unit": "weight",
+        "name": "泡沫轴放松大腿前侧",
+        "unit": "time",
         "sets": [
           {
-            "reps": 12,
-            "weight": 30
-          },
-          {
-            "reps": 12,
-            "weight": 30
+            "reps": 1,
+            "duration": 60
           }
         ]
       }
