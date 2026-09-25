@@ -492,7 +492,11 @@
         "sets": [
           {
             "reps": 0,
-            "duration": 0
+            "duration": 60
+          },
+          {
+            "reps": 0,
+            "duration": 60
           }
         ]
       }
